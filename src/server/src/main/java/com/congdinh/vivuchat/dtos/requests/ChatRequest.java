@@ -11,11 +11,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatRequest {
-    @NotBlank(message = "Title is required")
-    private String title;
+    @Builder.Default
+    private String title = "New Chat";
     
     private String description;
     
-    @NotBlank(message = "Model is required")
-    private String model;
+    @NotBlank(message = "Model name is required")
+    private String model; // Direct model name from Ollama
 }

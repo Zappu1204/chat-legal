@@ -18,8 +18,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -218,6 +220,48 @@ public class OllamaModelController {
             log.error("Error pushing model {}", request.getModel(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("status", "error: " + e.getMessage()));
+        }
+    }
+
+    // Add a method to simply list available models for frontend use
+    @GetMapping("/available")
+    @Operation(
+            summary = "List available models",
+            description = "Get a simple list of available models for use in chat",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Available models retrieved successfully"
+                    )
+            }
+    )
+    public ResponseEntity<Map<String, Object>> getAvailableModels() {
+        try {
+            List<OllamaModelResponse> models = ollamaModelService.listLocalModels();
+            List<Map<String, Object>> formattedModels = models.stream()
+                    .map(model -> {
+                        Map<String, Object> modelMap = new HashMap<>();
+                        modelMap.put("name", model.getName());
+                        modelMap.put("displayName", model.getName().replace(":", " "));
+                        
+                        // Extract parameter size if available
+                        if (model.getDetails() != null && model.getDetails().getParameterSize() != null) {
+                            modelMap.put("size", model.getDetails().getParameterSize());
+                        }
+                        
+                        // Add other relevant details
+                        modelMap.put("modified", model.getModifiedAt());
+                        
+                        return modelMap;
+                    })
+                    .collect(Collectors.toList());
+                    
+            Map<String, Object> response = new HashMap<>();
+            response.put("models", formattedModels);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error getting available models", e);
+            return ResponseEntity.ok(Map.of("models", Collections.emptyList()));
         }
     }
 }

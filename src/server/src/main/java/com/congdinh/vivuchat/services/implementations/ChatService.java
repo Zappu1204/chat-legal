@@ -9,11 +9,11 @@ import com.congdinh.vivuchat.entities.Chat;
 import com.congdinh.vivuchat.entities.Message;
 import com.congdinh.vivuchat.entities.Message.MessageRole;
 import com.congdinh.vivuchat.entities.User;
-import com.congdinh.vivuchat.repositories.IAIModelRepository;
 import com.congdinh.vivuchat.repositories.IChatRepository;
 import com.congdinh.vivuchat.repositories.IMessageRepository;
 import com.congdinh.vivuchat.repositories.IUserRepository;
 import com.congdinh.vivuchat.services.interfaces.IChatService;
+import com.congdinh.vivuchat.services.interfaces.IOllamaModelService;
 import com.congdinh.vivuchat.services.interfaces.IOllamaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,11 +23,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,8 +34,8 @@ public class ChatService implements IChatService {
     private final IChatRepository chatRepository;
     private final IMessageRepository messageRepository;
     private final IUserRepository userRepository;
-    private final IAIModelRepository aiModelRepository;
     private final IOllamaService ollamaService;
+    private final IOllamaModelService ollamaModelService;
 
     @Override
     @Transactional
@@ -47,9 +43,11 @@ public class ChatService implements IChatService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
                 
-        // Validate that the model exists
-        aiModelRepository.findByName(request.getModel())
-                .orElseThrow(() -> new IllegalArgumentException("AI model not found: " + request.getModel()));
+        // Validate that the model exists in Ollama
+        boolean modelExists = ollamaModelService.getModelDetails(request.getModel()) != null;
+        if (!modelExists) {
+            throw new IllegalArgumentException("Model not found: " + request.getModel());
+        }
                 
         Chat chat = Chat.builder()
                 .title(request.getTitle())
@@ -113,6 +111,12 @@ public class ChatService implements IChatService {
                 
         Chat chat = chatRepository.findByIdAndUser(chatId, user)
                 .orElseThrow(() -> new RuntimeException("Chat not found or you don't have access"));
+        
+        // Validate model exists in Ollama before proceeding
+        boolean modelExists = ollamaModelService.getModelDetails(chat.getModel()) != null;
+        if (!modelExists) {
+            throw new IllegalArgumentException("Model no longer available: " + chat.getModel());
+        }
                 
         // Save user message
         Message userMessage = Message.builder()

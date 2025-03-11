@@ -1,29 +1,33 @@
 package com.congdinh.vivuchat.dtos.ollama;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Map;
+import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class OllamaCompletionResponse {
     private String model;
     private String created_at;
     private OllamaMessage message;
     private boolean done;
-    private Map<String, Object> total_duration;
-    private Map<String, Object> load_duration;
-    private Map<String, Object> prompt_eval_duration;
-    private Map<String, Object> eval_duration;
-    private Integer prompt_eval_count;
-    private Integer eval_count;
+    private String done_reason;
+    private List<Integer> context;
+    private long total_duration; // Changed from Map to long
+    private long load_duration;  // Changed from Map to long
+    private int prompt_eval_count;
+    private long prompt_eval_duration;
+    private int eval_count;
+    private long eval_duration;
     
     @Data
     @NoArgsConstructor

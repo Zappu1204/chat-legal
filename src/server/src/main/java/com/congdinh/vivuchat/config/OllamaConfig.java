@@ -9,6 +9,6 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "app.ollama")
 public class OllamaConfig {
     private String apiUrl = "http://localhost:11434/api";
-    private int timeoutSeconds = 60;
+    private int timeoutSeconds = 120;
     private boolean enableStreaming = true;
 }

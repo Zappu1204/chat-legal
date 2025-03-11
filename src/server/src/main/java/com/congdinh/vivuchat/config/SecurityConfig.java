@@ -43,12 +43,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/models/**").permitAll() // Make models endpoint public
+                        .requestMatchers("/api/ollama/models/**").permitAll() // Make Ollama models endpoint public for direct access
                         // Swagger UI and API docs endpoints
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api-docs/**").permitAll()
                         // Admin endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/ollama/models/**").hasAnyRole("ADMIN", "USER") // Restrict Ollama model management to authenticated users
                         // Secured endpoints
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

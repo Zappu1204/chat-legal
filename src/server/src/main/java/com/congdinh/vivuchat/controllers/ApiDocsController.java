@@ -45,13 +45,6 @@ public class ApiDocsController {
         chatEndpoints.put("POST /api/chats/{id}/messages", "Send a message to a chat");
         chatEndpoints.put("GET /api/chats/{id}/messages", "Get all messages in a chat");
         
-        // AI model endpoints
-        Map<String, Object> modelEndpoints = new HashMap<>();
-        modelEndpoints.put("GET /api/models", "List all AI models");
-        modelEndpoints.put("GET /api/models/active", "List active AI models");
-        modelEndpoints.put("GET /api/models/{id}", "Get AI model by ID");
-        modelEndpoints.put("GET /api/models/name/{name}", "Get AI model by name");
-        
         // Ollama model management endpoints
         Map<String, Object> ollamaModelEndpoints = new HashMap<>();
         ollamaModelEndpoints.put("GET /api/ollama/models", "List all locally available models");
@@ -65,7 +58,6 @@ public class ApiDocsController {
         apiInfo.put("authEndpoints", authEndpoints);
         apiInfo.put("adminEndpoints", adminEndpoints);
         apiInfo.put("chatEndpoints", chatEndpoints);
-        apiInfo.put("modelEndpoints", modelEndpoints);
         apiInfo.put("ollamaModelEndpoints", ollamaModelEndpoints);
         apiInfo.put("contact", Map.of("name", "Cong Dinh", "email", "congdinh@example.com"));
         
