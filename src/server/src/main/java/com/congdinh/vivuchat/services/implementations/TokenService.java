@@ -7,8 +7,8 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -17,18 +17,19 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class TokenService implements ITokenService {
 
     private final JwtConfig jwtConfig;
+
+    @Autowired
+    public TokenService(JwtConfig jwtConfig) {
+        this.jwtConfig = jwtConfig;
+    }
 
     @Override
     public String generateAccessToken(UserDetailsImpl userPrincipal) {
@@ -87,7 +88,7 @@ public class TokenService implements ITokenService {
         return false;
     }
 
-     @Override
+    @Override
     public Authentication getAuthentication(String token) {
         if (token == null) {
             return null;
@@ -100,15 +101,22 @@ public class TokenService implements ITokenService {
                     .parseSignedClaims(token)
                     .getPayload();
 
-            String roles = claims.get("roles").toString();
+            String username = claims.getSubject();
 
-            Set<GrantedAuthority> authorities = Set.of(roles.split(",")).stream()
-                    .map(SimpleGrantedAuthority::new).collect(Collectors.toSet());
+            // Extract roles from claims
+            @SuppressWarnings("unchecked")
+            List<Map<String, String>> rolesMap = (List<Map<String, String>>) claims.get("roles");
 
-            User priciple = new User(claims.getSubject(), "", authorities);
+            Collection<GrantedAuthority> authorities = rolesMap != null ? rolesMap.stream()
+                    .map(role -> new SimpleGrantedAuthority(role.get("authority")))
+                    .collect(Collectors.toList()) : Collections.emptyList();
 
-            return new UsernamePasswordAuthenticationToken(priciple, token, authorities);
+            // Create user principal without loading from database
+            User principal = new User(username, "", authorities);
+
+            return new UsernamePasswordAuthenticationToken(principal, token, authorities);
         } catch (Exception e) {
+            log.error("Authentication error: {}", e.getMessage());
             return null;
         }
     }
