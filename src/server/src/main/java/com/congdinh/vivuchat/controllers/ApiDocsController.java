@@ -3,10 +3,13 @@ package com.congdinh.vivuchat.controllers;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
+@Tag(name = "API Documentation", description = "API documentation for ViVu Chat application")
 public class ApiDocsController {
 
     @GetMapping("/api-docs")

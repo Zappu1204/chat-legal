@@ -11,9 +11,14 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+import java.nio.file.AccessDeniedException;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -87,7 +92,7 @@ public class GlobalExceptionHandler {
         log.error("Data integrity violation: {}", ex.getMessage());
         
         String message = "Database constraint violation";
-        if (ex.getMessage().contains("uk7tdcd6ab5wsgoudnvj7xf1b7l")) {
+        if (ex.getMessage() != null && ex.getMessage().contains("uk7tdcd6ab5wsgoudnvj7xf1b7l")) {
             message = "User already has an active refresh token";
         }
         
@@ -98,15 +103,24 @@ public class GlobalExceptionHandler {
                 request.getRequestURI());
     }
     
+    // Combined generic Exception handler that works with both HttpServletRequest and WebRequest
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse handleGlobalException(Exception ex, HttpServletRequest request) {
+    public ResponseEntity<Object> handleAllExceptions(Exception ex, WebRequest request, HttpServletRequest httpRequest) {
         log.error("Unhandled exception: ", ex);
-        return new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                new Date(),
-                "An unexpected error occurred",
-                request.getRequestURI());
+        
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        body.put("message", "An unexpected error occurred");
+        body.put("path", httpRequest != null ? httpRequest.getRequestURI() : "unknown");
+        
+        if (ex != null && ex.getMessage() != null) {
+            body.put("details", ex.getMessage());
+        } else {
+            body.put("details", "Unknown error");
+        }
+        
+        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
     
     @ExceptionHandler(ChatException.class)
@@ -140,5 +154,56 @@ public class GlobalExceptionHandler {
                 new Date(),
                 ex.getMessage(),
                 request.getRequestURI());
+    }
+    
+    @ExceptionHandler(WebClientResponseException.class)
+    public ResponseEntity<Object> handleWebClientResponseException(WebClientResponseException ex, WebRequest request, HttpServletRequest httpRequest) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", ex.getStatusCode().value());
+        body.put("message", "External service error");
+        body.put("path", httpRequest != null ? httpRequest.getRequestURI() : "unknown");
+        
+        if (ex.getMessage() != null) {
+            body.put("details", ex.getMessage());
+        } else {
+            body.put("details", "Error from external service");
+        }
+        
+        log.error("WebClient error: {} - {}", ex.getStatusCode(), ex.toString());
+        return new ResponseEntity<>(body, ex.getStatusCode());
+    }
+    
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    public ResponseEntity<Object> handleAsyncRequestTimeoutException(AsyncRequestTimeoutException ex, WebRequest request) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("message", "Request processing timed out");
+        
+        log.warn("Async request timed out");
+        return new ResponseEntity<>(body, HttpStatus.REQUEST_TIMEOUT);
+    }
+    
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException ex, WebRequest request) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("message", "Access denied");
+        
+        if (ex.getMessage() != null) {
+            body.put("details", ex.getMessage());
+        }
+        
+        return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
+    }
+    
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<Object> handleNullPointerException(NullPointerException ex, WebRequest request) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("message", "The server encountered an internal error");
+        
+        log.error("NullPointerException: ", ex);
+        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

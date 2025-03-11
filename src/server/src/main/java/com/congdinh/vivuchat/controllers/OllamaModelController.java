@@ -16,8 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -56,10 +56,14 @@ public class OllamaModelController {
                     )
             }
     )
-    public Mono<ResponseEntity<List<OllamaModelResponse>>> listLocalModels() {
-        return ollamaModelService.listLocalModels()
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.ok(List.of()));
+    public ResponseEntity<List<OllamaModelResponse>> listLocalModels() {
+        try {
+            List<OllamaModelResponse> models = ollamaModelService.listLocalModels();
+            return ResponseEntity.ok(models);
+        } catch (Exception e) {
+            log.error("Error listing local models", e);
+            return ResponseEntity.ok(Collections.emptyList());
+        }
     }
 
     @GetMapping("/running")
@@ -74,10 +78,14 @@ public class OllamaModelController {
                     )
             }
     )
-    public Mono<ResponseEntity<List<OllamaModelResponse>>> listRunningModels() {
-        return ollamaModelService.listRunningModels()
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.ok(List.of()));
+    public ResponseEntity<List<OllamaModelResponse>> listRunningModels() {
+        try {
+            List<OllamaModelResponse> models = ollamaModelService.listRunningModels();
+            return ResponseEntity.ok(models);
+        } catch (Exception e) {
+            log.error("Error listing running models", e);
+            return ResponseEntity.ok(Collections.emptyList());
+        }
     }
 
     @GetMapping("/{model}")
@@ -96,10 +104,18 @@ public class OllamaModelController {
                     )
             }
     )
-    public Mono<ResponseEntity<OllamaModelDetails>> getModelDetails(@PathVariable String model) {
-        return ollamaModelService.getModelDetails(model)
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+    public ResponseEntity<OllamaModelDetails> getModelDetails(@PathVariable String model) {
+        try {
+            OllamaModelDetails details = ollamaModelService.getModelDetails(model);
+            if (details != null) {
+                return ResponseEntity.ok(details);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            log.error("Error getting model details for {}", model, e);
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PostMapping("/copy")
@@ -117,15 +133,18 @@ public class OllamaModelController {
                     )
             }
     )
-    public Mono<ResponseEntity<Map<String, String>>> copyModel(@RequestBody CopyModelRequest request) {
-        return ollamaModelService.copyModel(request.getSource(), request.getDestination())
-                .map(result -> {
-                    if (Boolean.TRUE.equals(result)) {
-                        return ResponseEntity.ok(Map.of("message", "Model copied successfully"));
-                    } else {
-                        return ResponseEntity.badRequest().body(Map.of("message", "Failed to copy model"));
-                    }
-                });
+    public ResponseEntity<Map<String, String>> copyModel(@RequestBody CopyModelRequest request) {
+        try {
+            boolean result = ollamaModelService.copyModel(request.getSource(), request.getDestination());
+            if (result) {
+                return ResponseEntity.ok(Map.of("message", "Model copied successfully"));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("message", "Failed to copy model"));
+            }
+        } catch (Exception e) {
+            log.error("Error copying model from {} to {}", request.getSource(), request.getDestination(), e);
+            return ResponseEntity.badRequest().body(Map.of("message", "Error: " + e.getMessage()));
+        }
     }
 
     @DeleteMapping("/{model}")
@@ -143,15 +162,19 @@ public class OllamaModelController {
                     )
             }
     )
-    public Mono<ResponseEntity<Map<String, String>>> deleteModel(@PathVariable String model) {
-        return ollamaModelService.deleteModel(model)
-                .map(result -> {
-                    if (Boolean.TRUE.equals(result)) {
-                        return ResponseEntity.ok(Map.of("message", "Model deleted successfully"));
-                    } else {
-                        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Model not found"));
-                    }
-                });
+    public ResponseEntity<Map<String, String>> deleteModel(@PathVariable String model) {
+        try {
+            boolean result = ollamaModelService.deleteModel(model);
+            if (result) {
+                return ResponseEntity.ok(Map.of("message", "Model deleted successfully"));
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Model not found"));
+            }
+        } catch (Exception e) {
+            log.error("Error deleting model {}", model, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error deleting model: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/pull")
@@ -165,9 +188,15 @@ public class OllamaModelController {
                     )
             }
     )
-    public Mono<ResponseEntity<Map<String, String>>> pullModel(@RequestBody ModelRequest request) {
-        return ollamaModelService.pullModel(request.getModel(), request.isInsecure(), request.isStream())
-                .map(status -> ResponseEntity.ok(Map.of("status", status)));
+    public ResponseEntity<Map<String, String>> pullModel(@RequestBody ModelRequest request) {
+        try {
+            String status = ollamaModelService.pullModel(request.getModel(), request.isInsecure(), request.isStream());
+            return ResponseEntity.ok(Map.of("status", status));
+        } catch (Exception e) {
+            log.error("Error pulling model {}", request.getModel(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/push")
@@ -181,8 +210,14 @@ public class OllamaModelController {
                     )
             }
     )
-    public Mono<ResponseEntity<Map<String, String>>> pushModel(@RequestBody ModelRequest request) {
-        return ollamaModelService.pushModel(request.getModel(), request.isInsecure(), request.isStream())
-                .map(status -> ResponseEntity.ok(Map.of("status", status)));
+    public ResponseEntity<Map<String, String>> pushModel(@RequestBody ModelRequest request) {
+        try {
+            String status = ollamaModelService.pushModel(request.getModel(), request.isInsecure(), request.isStream());
+            return ResponseEntity.ok(Map.of("status", status));
+        } catch (Exception e) {
+            log.error("Error pushing model {}", request.getModel(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "error: " + e.getMessage()));
+        }
     }
 }

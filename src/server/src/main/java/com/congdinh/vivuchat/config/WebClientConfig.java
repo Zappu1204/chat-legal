@@ -11,6 +11,7 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
@@ -22,7 +23,17 @@ public class WebClientConfig {
 
     @Bean
     public WebClient ollamaWebClient(OllamaConfig ollamaConfig) {
-        HttpClient httpClient = HttpClient.create()
+        // Create a connection provider with proper connection pooling
+        ConnectionProvider provider = ConnectionProvider.builder("ollama-connection-pool")
+                .maxConnections(50)
+                .maxIdleTime(Duration.ofSeconds(30))
+                .maxLifeTime(Duration.ofMinutes(5))
+                .pendingAcquireTimeout(Duration.ofSeconds(60))
+                .evictInBackground(Duration.ofSeconds(120))
+                .build();
+
+        // Create HTTP client with timeouts and connection pool
+        HttpClient httpClient = HttpClient.create(provider)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, ollamaConfig.getTimeoutSeconds() * 1000)
                 .responseTimeout(Duration.ofSeconds(ollamaConfig.getTimeoutSeconds()))
                 .doOnConnected(conn -> 
@@ -40,6 +51,7 @@ public class WebClientConfig {
                 .exchangeStrategies(exchangeStrategies)
                 .filter(logRequest())
                 .filter(logResponse())
+                .filter(handleErrors())
                 .build();
     }
     
@@ -56,6 +68,22 @@ public class WebClientConfig {
         return ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
             log.debug("Response status: {}", clientResponse.statusCode());
             return Mono.just(clientResponse);
+        });
+    }
+    
+    // Error handling filter
+    private ExchangeFilterFunction handleErrors() {
+        return ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
+            if (clientResponse.statusCode().isError()) {
+                return clientResponse.bodyToMono(String.class)
+                        .defaultIfEmpty("No response body")
+                        .flatMap(errorBody -> {
+                            log.error("Error response: {} - {}", clientResponse.statusCode(), errorBody);
+                            return Mono.just(clientResponse);
+                        });
+            } else {
+                return Mono.just(clientResponse);
+            }
         });
     }
 }
