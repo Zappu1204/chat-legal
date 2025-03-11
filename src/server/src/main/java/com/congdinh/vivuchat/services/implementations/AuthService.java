@@ -5,7 +5,6 @@ import com.congdinh.vivuchat.dtos.requests.LogoutRequest;
 import com.congdinh.vivuchat.dtos.requests.RefreshTokenRequest;
 import com.congdinh.vivuchat.dtos.requests.RegisterRequest;
 import com.congdinh.vivuchat.dtos.responses.JwtResponse;
-import com.congdinh.vivuchat.dtos.responses.MessageResponse;
 import com.congdinh.vivuchat.entities.RefreshToken;
 import com.congdinh.vivuchat.entities.Role;
 import com.congdinh.vivuchat.entities.User;
@@ -34,6 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import com.congdinh.vivuchat.dtos.responses.MessageResponse;
 
 @Slf4j
 @Service
@@ -67,7 +68,8 @@ public class AuthService implements UserDetailsService, IAuthService {
         return userRepository.findByUsername(username)
                 .map(user -> {
                     // Force initialization of roles inside transaction
-                    user.getRoles().size();
+                    int rolesSize = user.getRoles().size();
+                    log.debug("User roles size: {}", rolesSize);
                     return UserDetailsImpl.build(user);
                 })
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));

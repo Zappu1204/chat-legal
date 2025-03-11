@@ -1,17 +1,15 @@
 package com.congdinh.vivuchat.controllers;
 
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Controller
+@RestController
 public class ApiDocsController {
 
     @GetMapping("/api-docs")
-    @ResponseBody
     public Map<String, Object> getApiInfo() {
         // Simple API documentation as JSON
         Map<String, Object> apiInfo = new HashMap<>();
@@ -35,8 +33,37 @@ public class ApiDocsController {
         adminEndpoints.put("POST /api/admin/tokens/purge", "Remove expired tokens (admin only)");
         adminEndpoints.put("POST /api/admin/users/{username}/revoke-tokens", "Revoke all tokens for a user (admin only)");
         
+        // Chat endpoints
+        Map<String, Object> chatEndpoints = new HashMap<>();
+        chatEndpoints.put("GET /api/chats", "List all chats for authenticated user");
+        chatEndpoints.put("POST /api/chats", "Create a new chat");
+        chatEndpoints.put("GET /api/chats/{id}", "Get a specific chat");
+        chatEndpoints.put("DELETE /api/chats/{id}", "Delete a chat");
+        chatEndpoints.put("POST /api/chats/{id}/messages", "Send a message to a chat");
+        chatEndpoints.put("GET /api/chats/{id}/messages", "Get all messages in a chat");
+        
+        // AI model endpoints
+        Map<String, Object> modelEndpoints = new HashMap<>();
+        modelEndpoints.put("GET /api/models", "List all AI models");
+        modelEndpoints.put("GET /api/models/active", "List active AI models");
+        modelEndpoints.put("GET /api/models/{id}", "Get AI model by ID");
+        modelEndpoints.put("GET /api/models/name/{name}", "Get AI model by name");
+        
+        // Ollama model management endpoints
+        Map<String, Object> ollamaModelEndpoints = new HashMap<>();
+        ollamaModelEndpoints.put("GET /api/ollama/models", "List all locally available models");
+        ollamaModelEndpoints.put("GET /api/ollama/models/running", "List all currently running models");
+        ollamaModelEndpoints.put("GET /api/ollama/models/{model}", "Get details of a specific model");
+        ollamaModelEndpoints.put("POST /api/ollama/models/copy", "Copy an existing model with a new name");
+        ollamaModelEndpoints.put("DELETE /api/ollama/models/{model}", "Delete a model");
+        ollamaModelEndpoints.put("POST /api/ollama/models/pull", "Pull a model from Ollama library");
+        ollamaModelEndpoints.put("POST /api/ollama/models/push", "Push a model to Ollama library");
+        
         apiInfo.put("authEndpoints", authEndpoints);
         apiInfo.put("adminEndpoints", adminEndpoints);
+        apiInfo.put("chatEndpoints", chatEndpoints);
+        apiInfo.put("modelEndpoints", modelEndpoints);
+        apiInfo.put("ollamaModelEndpoints", ollamaModelEndpoints);
         apiInfo.put("contact", Map.of("name", "Cong Dinh", "email", "congdinh@example.com"));
         
         return apiInfo;

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -105,6 +106,39 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 new Date(),
                 "An unexpected error occurred",
+                request.getRequestURI());
+    }
+    
+    @ExceptionHandler(ChatException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleChatException(ChatException ex, HttpServletRequest request) {
+        log.error("Chat exception: {}", ex.getMessage());
+        return new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                new Date(),
+                ex.getMessage(),
+                request.getRequestURI());
+    }
+    
+    @ExceptionHandler(UsernameNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleUsernameNotFoundException(UsernameNotFoundException ex, HttpServletRequest request) {
+        log.error("User not found: {}", ex.getMessage());
+        return new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                new Date(),
+                ex.getMessage(),
+                request.getRequestURI());
+    }
+    
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
+        log.error("Invalid argument: {}", ex.getMessage());
+        return new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                new Date(),
+                ex.getMessage(),
                 request.getRequestURI());
     }
 }

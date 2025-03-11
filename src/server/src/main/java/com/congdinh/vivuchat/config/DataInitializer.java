@@ -10,7 +10,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -36,7 +35,6 @@ public class DataInitializer {
         };
     }
 
-    @Transactional
     private void initRoles() {
         if (!roleRepository.existsByName("ROLE_ADMIN")) {
             roleRepository.save(Role.builder()
@@ -55,7 +53,6 @@ public class DataInitializer {
         }
     }
 
-    @Transactional
     private void initAdminUser() {
         if (!userRepository.existsByUsername("admin")) {
             try {

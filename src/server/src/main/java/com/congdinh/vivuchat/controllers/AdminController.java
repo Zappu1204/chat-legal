@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -114,7 +113,7 @@ public class AdminController {
                     tokenInfo.put("reasonRevoked", token.getReasonRevoked());
                     return tokenInfo;
                 })
-                .collect(Collectors.toList());
+                .toList();
         
         Map<String, Object> response = new HashMap<>();
         response.put("count", tokens.size());

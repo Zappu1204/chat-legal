@@ -4,8 +4,8 @@ import com.congdinh.vivuchat.dtos.requests.LoginRequest;
 import com.congdinh.vivuchat.dtos.requests.LogoutRequest;
 import com.congdinh.vivuchat.dtos.requests.RefreshTokenRequest;
 import com.congdinh.vivuchat.dtos.requests.RegisterRequest;
-import com.congdinh.vivuchat.dtos.responses.JwtResponse;
 import com.congdinh.vivuchat.dtos.responses.MessageResponse;
+import com.congdinh.vivuchat.dtos.responses.JwtResponse;
 
 public interface IAuthService {
     JwtResponse authenticateUser(LoginRequest loginRequest);
