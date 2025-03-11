@@ -3,6 +3,8 @@ package com.congdinh.vivuchat.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -10,6 +12,7 @@ import org.springframework.web.filter.CorsFilter;
 import java.util.Arrays;
 
 @Configuration
+@Order(Ordered.HIGHEST_PRECEDENCE) // Place this filter before the security filter chain
 public class CorsConfig {
 
     @Value("${app.security.cors.allowed-origins}")
@@ -27,27 +30,17 @@ public class CorsConfig {
         config.setAllowCredentials(true);
         
         // Allow common HTTP methods
-        config.addAllowedMethod("GET");
-        config.addAllowedMethod("POST");
-        config.addAllowedMethod("PUT");
-        config.addAllowedMethod("DELETE");
-        config.addAllowedMethod("OPTIONS");
+        config.addAllowedMethod("*");  // Simplify to accept all methods
         
         // Allow common headers
-        config.addAllowedHeader("Authorization");
-        config.addAllowedHeader("Content-Type");
-        config.addAllowedHeader("Accept");
+        config.addAllowedHeader("*");  // Simplify to accept all headers
         
         // Expose headers
         config.addExposedHeader("Authorization");
+        config.addExposedHeader("Content-Type");
         
         // Apply to all paths
-        source.registerCorsConfiguration("/api/**", config);
-        
-        // Special configuration for SSE endpoints
-        CorsConfiguration sseConfig = new CorsConfiguration(config);
-        sseConfig.addExposedHeader("Content-Type");
-        source.registerCorsConfiguration("/api/ollama/chat/stream", sseConfig);
+        source.registerCorsConfiguration("/**", config);  // Apply to all paths for simplicity
         
         return new CorsFilter(source);
     }

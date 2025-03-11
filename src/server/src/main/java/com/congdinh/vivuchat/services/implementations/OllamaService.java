@@ -214,19 +214,6 @@ public class OllamaService implements IOllamaService {
                 .doOnComplete(() -> log.debug("Streaming completed for event ID: {}", eventId));
     }
     
-    private OllamaCompletionResponse createErrorResponse(String model) {
-        OllamaCompletionResponse.OllamaMessage errorMessage = new OllamaCompletionResponse.OllamaMessage(
-            "assistant", 
-            "I'm sorry, I encountered an error while processing your request. Please try again later."
-        );
-        
-        return OllamaCompletionResponse.builder()
-                .model(model)
-                .message(errorMessage)
-                .done(true)
-                .build();
-    }
-    
     @Override
     public String getSystemPrompt() {
         return "You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being " +
