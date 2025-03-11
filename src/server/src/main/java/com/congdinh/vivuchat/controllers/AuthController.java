@@ -4,6 +4,7 @@ import com.congdinh.vivuchat.dtos.requests.LoginRequest;
 import com.congdinh.vivuchat.dtos.requests.LogoutRequest;
 import com.congdinh.vivuchat.dtos.requests.RefreshTokenRequest;
 import com.congdinh.vivuchat.dtos.requests.RegisterRequest;
+import com.congdinh.vivuchat.dtos.requests.RevokeTokenRequest;
 import com.congdinh.vivuchat.dtos.responses.JwtResponse;
 import com.congdinh.vivuchat.dtos.responses.MessageResponse;
 import com.congdinh.vivuchat.events.AuthenticationEvent;
@@ -185,6 +186,44 @@ public class AuthController {
         }
         
         return ResponseEntity.ok(response);
+    }
+    
+    @PostMapping("/revoke")
+    @Operation(
+        summary = "Revoke refresh token",
+        description = "Explicitly invalidate a refresh token before its expiration",
+        responses = {
+            @ApiResponse(
+                responseCode = "200",
+                description = "Token successfully revoked",
+                content = @Content(schema = @Schema(implementation = MessageResponse.class))
+            ),
+            @ApiResponse(
+                responseCode = "400", 
+                description = "Invalid token or token not found"
+            )
+        }
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<MessageResponse> revokeToken(
+            @Valid @RequestBody RevokeTokenRequest request,
+            HttpServletRequest httpRequest) {
+        log.info("Token revocation request received");
+        
+        MessageResponse response = authService.revokeToken(request.getToken(), request.getReason());
+        
+        if (response.isSuccess()) {
+            eventPublisher.publishEvent(new AuthenticationEvent(
+                    this,
+                    "token-user", // We don't expose the username for security reasons
+                    AuthenticationEvent.AuthEventType.INVALID_TOKEN,
+                    "Token revoked: " + (request.getReason() != null ? request.getReason() : "No reason provided"),
+                    getClientIp(httpRequest)
+            ));
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
     }
     
     // Helper method to get client IP address

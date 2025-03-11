@@ -26,8 +26,17 @@ public class ApiDocsController {
         authEndpoints.put("POST /api/auth/register", "Register a new user");
         authEndpoints.put("POST /api/auth/refresh", "Refresh access token");
         authEndpoints.put("POST /api/auth/logout", "Log out a user");
+        authEndpoints.put("POST /api/auth/revoke", "Revoke a specific refresh token");
         
-        apiInfo.put("endpoints", authEndpoints);
+        // Admin endpoints
+        Map<String, Object> adminEndpoints = new HashMap<>();
+        adminEndpoints.put("GET /api/admin/tokens", "List all tokens (admin only)");
+        adminEndpoints.put("POST /api/admin/tokens/revoke", "Revoke any token (admin only)");
+        adminEndpoints.put("POST /api/admin/tokens/purge", "Remove expired tokens (admin only)");
+        adminEndpoints.put("POST /api/admin/users/{username}/revoke-tokens", "Revoke all tokens for a user (admin only)");
+        
+        apiInfo.put("authEndpoints", authEndpoints);
+        apiInfo.put("adminEndpoints", adminEndpoints);
         apiInfo.put("contact", Map.of("name", "Cong Dinh", "email", "congdinh@example.com"));
         
         return apiInfo;

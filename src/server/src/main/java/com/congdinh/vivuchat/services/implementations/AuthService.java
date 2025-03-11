@@ -255,6 +255,36 @@ public class AuthService implements UserDetailsService, IAuthService {
     }
 
     @Override
+    @Transactional
+    public MessageResponse revokeToken(String token, String reason) {
+        return refreshTokenService.findByToken(token)
+                .map(refreshToken -> {
+                    if (refreshToken.isRevoked()) {
+                        return MessageResponse.builder()
+                                .message("Token was already revoked")
+                                .success(false)
+                                .build();
+                    }
+                    
+                    String finalReason = (reason != null && !reason.isBlank()) ? 
+                            reason : "Manually revoked by user";
+                    refreshTokenService.revokeToken(refreshToken, finalReason);
+                    
+                    log.info("Token revoked for user: {}, reason: {}", 
+                            refreshToken.getUser().getUsername(), finalReason);
+                            
+                    return MessageResponse.builder()
+                            .message("Token successfully revoked")
+                            .success(true)
+                            .build();
+                })
+                .orElse(MessageResponse.builder()
+                        .message("Token not found")
+                        .success(false)
+                        .build());
+    }
+
+    @Override
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
     }

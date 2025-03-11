@@ -12,6 +12,7 @@ public interface IAuthService {
     JwtResponse refreshToken(RefreshTokenRequest refreshTokenRequest);
     MessageResponse registerUser(RegisterRequest registerRequest);
     MessageResponse logoutUser(LogoutRequest logoutRequest);
+    MessageResponse revokeToken(String token, String reason);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
 }
