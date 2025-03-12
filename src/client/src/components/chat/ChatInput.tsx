@@ -36,25 +36,29 @@ const ChatInput = ({ onSubmit, isDisabled, placeholder = 'Type a message...' }: 
     };
 
     return (
-        <div className="border-t border-gray-200 p-4 bg-white rounded-lg shadow-sm">
-            <div className="flex items-end gap-2">
-                <textarea
-                    ref={textareaRef}
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={placeholder}
-                    disabled={isDisabled}
-                    rows={1}
-                    className="flex-grow resize-none border rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                />
-                <button title='Send message'
-                    onClick={handleSubmit}
-                    disabled={isDisabled || !message.trim()}
-                    className="bg-blue-500 text-white rounded-full p-2 h-10 w-10 flex items-center justify-center disabled:bg-gray-300"
-                >
-                    <FontAwesomeIcon icon={faPaperPlane} />
-                </button>
+        <div className="border-t border-gray-200 p-4 bg-slate-100 rounded-lg shadow-sm">
+            <div>
+                <div className="form-group">
+                    <textarea
+                        ref={textareaRef}
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder={placeholder}
+                        disabled={isDisabled}
+                        rows={1}
+                        className="w-full resize-none rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-transparent disabled:bg-gray-100 disabled:text-gray-500"
+                    />
+                </div>
+                <div className="form-actions flex justify-end items-center gap-2">
+                    <button title='Send message'
+                        onClick={handleSubmit}
+                        disabled={isDisabled || !message.trim()}
+                        className="bg-blue-500 text-white rounded-full p-2 h-10 w-10 flex items-center justify-center disabled:bg-gray-300"
+                    >
+                        <FontAwesomeIcon icon={faPaperPlane} />
+                    </button>
+                </div>
             </div>
         </div>
     );
