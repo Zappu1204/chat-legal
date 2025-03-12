@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState, memo, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faAngleDown, faAngleUp } from '@fortawesome/free-solid-svg-icons';
 import { ChatMessage as ChatMessageType } from '../../types/chat';
@@ -13,14 +13,48 @@ interface ChatMessageProps {
 
 const ChatMessage = memo(({ message, isLoading = false }: ChatMessageProps) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
   const isUser = message.role === 'user';
   const typingDots = useTypingEffect(isLoading && !isUser);
   
+  // Track elapsed time while thinking
+  useEffect(() => {
+    if (!message.thinking) {
+      // When thinking stops, use the final thinking time
+      if (message.thinkingTime && message.thinkingTime > 0) {
+        setElapsedTime(message.thinkingTime);
+      } else if (message.thinkingStartTime) {
+        // If we have a start time but no final time, calculate it
+        setElapsedTime(Date.now() - message.thinkingStartTime);
+      }
+      return;
+    }
+    
+    // While thinking is active, update the time every 100ms
+    const startTime = message.thinkingStartTime || Date.now();
+    const intervalId = setInterval(() => {
+      setElapsedTime(Date.now() - startTime);
+    }, 100);
+    
+    return () => clearInterval(intervalId);
+  }, [message.thinking, message.thinkingStartTime, message.thinkingTime]);
+  
   const formatThinkingTime = (ms?: number) => {
-    if (!ms) return '';
+    // Don't display 0.0 seconds
+    if (!ms || ms < 100) return '';
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(1)} second${ms >= 2000 ? 's' : ''}`;
   };
+  
+  const hasThinking = !!message.think && message.think.trim() !== '';
+  const shouldShowThinking = message.thinking || hasThinking;
+  
+  // Determine thinking display text
+  const thinkingText = message.thinking 
+    ? `Thinking...${formatThinkingTime(elapsedTime)}` 
+    : hasThinking && elapsedTime > 0 
+      ? `Thought for ${formatThinkingTime(message.thinkingTime || elapsedTime)}` 
+      : "Thinking...";
   
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"} p-4`}>
@@ -31,15 +65,13 @@ const ChatMessage = memo(({ message, isLoading = false }: ChatMessageProps) => {
               <div className="avatar p-2">
                 <img src={Logo} className="w-12 h-12" alt="Vite logo" />
               </div>
-              {message.think && message.think !== "\n\n" && (
+              {shouldShowThinking && (
                 <div className="thinking">
                   <button type='button'
                     onClick={() => setCollapsed(c => !c)}
                     className="text-blue-700 hover:bg-blue-50 font-medium rounded-lg text-sm p-2 inline-flex items-center cursor-pointer">
                     <span className={message.thinking ? "animate-pulse" : ""}>
-                      {message.thinkingTime 
-                        ? `Thought for ${formatThinkingTime(message.thinkingTime)}` 
-                        : `Thinking${typingDots}`}
+                      {thinkingText}
                     </span>
                     <FontAwesomeIcon
                       icon={collapsed ? faAngleDown : faAngleUp}
@@ -49,17 +81,17 @@ const ChatMessage = memo(({ message, isLoading = false }: ChatMessageProps) => {
                 </div>
               )}
             </div>
-            {message.think && message.think !== "\n\n" && (
-              <div className={`${collapsed ? "hidden" : "block"} bg-blue-100 mb-4 text-sm italic border-l-2 border-gray-400 pl-2 py-1`}>
-                <ReactMarkdown>{message.think}</ReactMarkdown>
+            {hasThinking && !collapsed && (
+              <div className="bg-blue-100 mb-4 text-sm italic border-l-2 border-gray-400 pl-2 py-1">
+                <ReactMarkdown>{message.think || ''}</ReactMarkdown>
               </div>
             )}
           </>
         )}
 
         <article className="prose max-w-none">
-          <ReactMarkdown>{message.content}</ReactMarkdown>
-          {isLoading && !isUser && message.content === '' && (
+          <ReactMarkdown>{message.content || ''}</ReactMarkdown>
+          {isLoading && !isUser && !message.thinking && message.content === '' && (
             <span className="inline-block animate-pulse">Thinking{typingDots}</span>
           )}
         </article>

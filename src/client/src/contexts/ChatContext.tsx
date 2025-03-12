@@ -54,7 +54,7 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
 };
 
 // Provider component
-export const ChatProvider = ({ children, modelId = 'deepseek-r1:32b' }: { children: ReactNode; modelId?: string }) => {
+export const ChatProvider = ({ children, modelId = 'deepseek-r1:latest' }: { children: ReactNode; modelId?: string }) => {
   const abortControllerRef = useRef<(() => void) | null>(null);
   
   const initialState: ChatState = {
@@ -64,15 +64,6 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:32b' }: { childr
   };
 
   const [state, dispatch] = useReducer(chatReducer, initialState);
-  const messageQueueRef = useRef<string>('');
-
-  // System message
-  const systemMessage: ChatMessage = {
-    id: 'system-message',
-    role: 'system',
-    content: `You are ViVu, a helpful and friendly AI assistant. Today's date is ${new Date().toLocaleDateString()}.`,
-    timestamp: new Date()
-  };
 
   // Cleanup on unmount
   useEffect(() => {
@@ -94,9 +85,12 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:32b' }: { childr
       if (!content.trim() || state.isTyping) return;
 
       // Reset state for new message
-      messageQueueRef.current = '';
       dispatch({ type: 'SET_TYPING', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
+
+      // Clear previous thinking state
+      sessionStorage.removeItem('thinkingStartTime');
+      sessionStorage.removeItem('thinkingTime');
 
       if (abortControllerRef.current) {
         abortControllerRef.current();
@@ -130,10 +124,9 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:32b' }: { childr
 
       // Prepare API request with conversation history
       const messagesToSend = [
-        { role: systemMessage.role, content: systemMessage.content },
         ...state.messages.map(msg => ({
           role: msg.role,
-          content: msg.role === 'user' ? msg.content : `<think>${msg.think}</think>${msg.content}`
+          content: msg.role === 'user' ? msg.content : `${msg.think ? `<think>${msg.think}</think>` : ''}${msg.content}`
         })),
         { role: userMessage.role, content: userMessage.content }
       ];
@@ -163,7 +156,7 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:32b' }: { childr
               return;
             }
 
-            // Update assistant message with new content
+            // Update assistant message with new content, ensuring think and content are separate
             updateMessage(assistantMessageId, {
               content: chunk.message?.content || '',
               thinking: !!chunk.thinking,
@@ -173,6 +166,13 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:32b' }: { childr
             });
 
             if (chunk.done) {
+              // Ensure we preserve the thinking time in the final message
+              if (chunk.think && chunk.thinkingTime) {
+                updateMessage(assistantMessageId, {
+                  thinking: false,
+                  thinkingTime: chunk.thinkingTime
+                });
+              }
               dispatch({ type: 'SET_TYPING', payload: false });
             }
           },
@@ -197,7 +197,7 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:32b' }: { childr
         });
       }
     },
-    [state.messages, state.isTyping, systemMessage, updateMessage, modelId]
+    [state.messages, state.isTyping, updateMessage, modelId]
   );
 
   // Clear all messages

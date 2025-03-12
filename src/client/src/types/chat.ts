@@ -1,6 +1,6 @@
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
   thinking?: boolean;
@@ -42,5 +42,4 @@ export enum MessageRole {
   User = "user",
   Assistant = "assistant",
   Tool = "tool",
-  System = "system"
 }
