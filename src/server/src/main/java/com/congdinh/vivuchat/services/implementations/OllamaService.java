@@ -32,8 +32,14 @@ public class OllamaService implements IOllamaService {
     private final OllamaConfig ollamaConfig;
     
     @Override
-    public OllamaCompletionResponse generateCompletion(String model, List<Map<String, String>> messages) {
+    public OllamaCompletionResponse generateCompletion(String model, List<Map<String, String>> messages, Map<String, Object> options) {
         log.info("Generating completion for model: {}", model);
+        
+        // Use default model if not provided
+        final String finalModel = model == null || model.isEmpty() ? ollamaConfig.getDefaultModel() : model;
+        if (!finalModel.equals(model)) {
+            log.info("Using default model: {}", finalModel);
+        }
         
         // Convert messages to the format expected by Ollama
         List<OllamaCompletionRequest.OllamaMessage> ollamaMessages = messages.stream()
@@ -43,17 +49,22 @@ public class OllamaService implements IOllamaService {
                         .build())
                 .collect(Collectors.toList());
         
-        // Prepend system message
-        ollamaMessages.add(0, OllamaCompletionRequest.OllamaMessage.builder()
-                .role("system")
-                .content(getSystemPrompt())
-                .build());
+        // Prepare options with defaults if not provided
+        Map<String, Object> requestOptions = new HashMap<>();
+        if (options == null) {
+            requestOptions.put("temperature", ollamaConfig.getDefaultTemperature());
+            requestOptions.put("repeat_penalty", ollamaConfig.getDefaultRepeatPenalty());
+            requestOptions.put("numa", ollamaConfig.isDefaultNuma());
+        } else {
+            requestOptions = options;
+        }
                 
         // Build request
         OllamaCompletionRequest request = OllamaCompletionRequest.builder()
-                .model(model)
+                .model(finalModel)
                 .messages(ollamaMessages)
                 .stream(false) // Set to false for non-streaming response
+                .options(requestOptions)
                 .build();
                 
         try {
@@ -85,7 +96,7 @@ public class OllamaService implements IOllamaService {
                         );
                         
                         OllamaCompletionResponse fallback = OllamaCompletionResponse.builder()
-                                .model(model)
+                                .model(finalModel)
                                 .message(errorMessage)
                                 .done(true)
                                 .build();
@@ -103,7 +114,7 @@ public class OllamaService implements IOllamaService {
             );
             
             return OllamaCompletionResponse.builder()
-                    .model(model)
+                    .model(finalModel)
                     .message(errorMessage)
                     .done(true)
                     .build();
@@ -119,6 +130,12 @@ public class OllamaService implements IOllamaService {
     ) {
         log.info("Streaming completion for model: {}", model);
         
+        // Use default model if not provided
+        final String finalModel = model == null || model.isEmpty() ? ollamaConfig.getDefaultModel() : model;
+        if (finalModel != model) {
+            log.info("Using default model: {}", finalModel);
+        }
+        
         // Convert messages to the format expected by Ollama
         List<OllamaCompletionRequest.OllamaMessage> ollamaMessages = messages.stream()
                 .map(msg -> OllamaCompletionRequest.OllamaMessage.builder()
@@ -127,66 +144,42 @@ public class OllamaService implements IOllamaService {
                         .build())
                 .collect(Collectors.toList());
         
-        // Prepend system message if not already included
-        boolean hasSystemMessage = ollamaMessages.stream()
-                .anyMatch(msg -> "system".equals(msg.getRole()));
-        
-        if (!hasSystemMessage) {
-            ollamaMessages.add(0, OllamaCompletionRequest.OllamaMessage.builder()
-                    .role("system")
-                    .content(getSystemPrompt())
-                    .build());
+        // Prepare options with defaults if not provided
+        Map<String, Object> requestOptions = new HashMap<>();
+        if (options == null) {
+            requestOptions.put("temperature", ollamaConfig.getDefaultTemperature());
+            requestOptions.put("repeat_penalty", ollamaConfig.getDefaultRepeatPenalty());
+            requestOptions.put("numa", ollamaConfig.isDefaultNuma());
+        } else {
+            requestOptions = options;
         }
                 
         // Build request with streaming enabled
         OllamaCompletionRequest request = OllamaCompletionRequest.builder()
-                .model(model)
+                .model(finalModel)
                 .messages(ollamaMessages)
                 .stream(streaming)
-                .options(options)
+                .options(requestOptions)
                 .build();
         
         log.debug("Sending streaming request to Ollama API: {}", request);
         
         // Generate a unique event ID for this streaming session
-        String eventId = UUID.randomUUID().toString();
+        final String eventId = UUID.randomUUID().toString();
         
         return ollamaWebClient.post()
                 .uri("/chat")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .retrieve()
-                .bodyToFlux(OllamaCompletionResponse.class)
-                .map(response -> {
-                    // Format the response to match the expected structure for the React frontend
-                    Map<String, Object> responseMap = new HashMap<>();
-                    
-                    // Add the model name
-                    responseMap.put("model", response.getModel());
-                    
-                    // Add timestamps and other metadata
-                    responseMap.put("created_at", response.getCreated_at());
-                    
-                    // Format message as expected by frontend
-                    if (response.getMessage() != null) {
-                        responseMap.put("message", response.getMessage());
-                    }
-                    
-                    // Add completion status
-                    responseMap.put("done", response.isDone());
-                    
-                    // Add other tracking metrics if available
-                    if (response.isDone()) {
-                        responseMap.put("total_duration", response.getTotal_duration());
-                        responseMap.put("prompt_eval_count", response.getPrompt_eval_count());
-                        responseMap.put("eval_count", response.getEval_count());
-                    }
-                    
-                    // Transform the response into a ServerSentEvent
+                .bodyToFlux(String.class) // Change to String to handle raw JSON
+                .doOnNext(chunk -> log.debug("Raw response chunk: {}", chunk))
+                .map(rawJson -> {
+                    // Pass the raw JSON directly to the client
                     return ServerSentEvent.<Object>builder()
                             .id(eventId)
                             .event("message")
-                            .data(responseMap)
+                            .data(rawJson)
                             .build();
                 })
                 .onErrorResume(e -> {
@@ -194,7 +187,7 @@ public class OllamaService implements IOllamaService {
                     
                     // Create an error event
                     Map<String, Object> errorMap = new HashMap<>();
-                    errorMap.put("model", model);
+                    errorMap.put("model", finalModel);
                     errorMap.put("error", e.getMessage());
                     errorMap.put("done", true);
                     
@@ -212,13 +205,5 @@ public class OllamaService implements IOllamaService {
                             .build());
                 })
                 .doOnComplete(() -> log.debug("Streaming completed for event ID: {}", eventId));
-    }
-    
-    @Override
-    public String getSystemPrompt() {
-        return "You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being " +
-               "safe. Your answers should be informative and factually correct. If a question is unclear or lacks " +
-               "factual coherence, explain why instead of answering something not correct. If you don't know the " +
-               "answer to a question, please don't share false information.";
     }
 }

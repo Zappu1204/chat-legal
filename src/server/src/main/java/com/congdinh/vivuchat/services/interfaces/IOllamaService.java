@@ -8,8 +8,13 @@ import java.util.List;
 import java.util.Map;
 
 public interface IOllamaService {
-    // Non-streaming response
-    OllamaCompletionResponse generateCompletion(String model, List<Map<String, String>> messages);
+    // Legacy method without options for backward compatibility
+    default OllamaCompletionResponse generateCompletion(String model, List<Map<String, String>> messages) {
+        return generateCompletion(model, messages, null);
+    }
+    
+    // Non-streaming response with options
+    OllamaCompletionResponse generateCompletion(String model, List<Map<String, String>> messages, Map<String, Object> options);
     
     // Streaming response for EventSource/SSE
     Flux<ServerSentEvent<Object>> streamCompletion(
@@ -18,6 +23,4 @@ public interface IOllamaService {
             boolean streaming,
             Map<String, Object> options
     );
-    
-    String getSystemPrompt();
 }

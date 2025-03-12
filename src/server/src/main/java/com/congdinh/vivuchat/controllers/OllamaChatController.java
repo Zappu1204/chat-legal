@@ -53,10 +53,17 @@ public class OllamaChatController {
     )
     public ResponseEntity<OllamaCompletionResponse> generateCompletion(@RequestBody ChatRequest request) {
         try {
-            OllamaCompletionResponse response = ollamaService.generateCompletion(request.getModel(), request.getMessages());
+            OllamaCompletionResponse response = ollamaService.generateCompletion(
+                request.getModel(), 
+                request.getMessages(),
+                request.getOptions()
+            );
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error generating completion", e);
+            
+            // Store model in a final variable to use in lambda
+            final String finalModel = request.getModel();
             
             // Create an error response
             OllamaCompletionResponse.OllamaMessage errorMessage = new OllamaCompletionResponse.OllamaMessage(
@@ -65,7 +72,7 @@ public class OllamaChatController {
             );
             
             OllamaCompletionResponse errorResponse = OllamaCompletionResponse.builder()
-                .model(request.getModel())
+                .model(finalModel)
                 .message(errorMessage)
                 .done(true)
                 .build();
@@ -88,6 +95,9 @@ public class OllamaChatController {
     public Flux<ServerSentEvent<Object>> streamCompletion(@RequestBody ChatRequest request) {
         try {
             boolean streaming = Optional.ofNullable(request.getStreaming()).orElse(true);
+            log.info("Streaming request with model: {}, streaming: {}, options: {}", 
+                    request.getModel(), streaming, request.getOptions());
+            
             return ollamaService.streamCompletion(
                     request.getModel(), 
                     request.getMessages(), 
