@@ -8,7 +8,7 @@ interface ChatInputProps {
     placeholder?: string;
 }
 
-const ChatInput = ({ onSubmit, isDisabled, placeholder = 'Type a message...' }: ChatInputProps) => {
+const ChatInput = ({ onSubmit, isDisabled, placeholder = 'Gõ đê bạn ơi...' }: ChatInputProps) => {
     const [message, setMessage] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -36,7 +36,7 @@ const ChatInput = ({ onSubmit, isDisabled, placeholder = 'Type a message...' }: 
     };
 
     return (
-        <div className="border-t border-gray-200 p-4 bg-slate-100 rounded-lg shadow-sm">
+        <div className="border-t border-gray-200 p-4 bg-slate-100 rounded-lg shadow-md">
             <div>
                 <div className="form-group">
                     <textarea
@@ -51,7 +51,7 @@ const ChatInput = ({ onSubmit, isDisabled, placeholder = 'Type a message...' }: 
                     />
                 </div>
                 <div className="form-actions flex justify-end items-center gap-2">
-                    <button title='Send message'
+                    <button title='Gửi tin nhắn' type='button'
                         onClick={handleSubmit}
                         disabled={isDisabled || !message.trim()}
                         className="bg-blue-500 text-white rounded-full p-2 h-10 w-10 flex items-center justify-center disabled:bg-gray-300"

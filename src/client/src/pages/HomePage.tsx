@@ -1,40 +1,22 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useChat } from '../contexts/ChatContext';
-import { useChatScroll } from '../hooks/useChatScroll';
 import ChatMessage from '../components/chat/ChatMessage';
 import ChatInput from '../components/chat/ChatInput';
 
 const HomePage = () => {
   const { user } = useAuth();
   const { messages, isTyping, error, sendMessage, dismissError } = useChat();
-  const messagesEndRef = useChatScroll(messages, isTyping);
 
   return (
     <div className="flex flex-col justify-center h-screen overflow-y-auto">
       <div className={`max-w-4xl w-full mx-auto ${messages.length === 0 ? '' : 'flex-grow'}`}>
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-700 mb-4">Hi, I'm ViVu Chat!</h2>
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <h2 className="text-2xl font-bold text-gray-700 mb-4">Chào bạn, Tớ là ViVu AI!</h2>
             <p className="text-gray-600 mb-8">
-              Hello, {user?.username}! How can I help you today?
+              {user?.username} ngoan xinh yêu ơi! Cứ hành tớ thoải mái nhé?
             </p>
-            <div className="bg-gray-50 p-6 rounded-lg max-w-lg w-full">
-              <p className="text-gray-700 font-medium mb-4">Sample questions you can ask:</p>
-              <div className="space-y-2 text-gray-600 text-sm">
-                <div aria-hidden className="p-2 bg-white rounded hover:bg-blue-50 cursor-pointer"
-                  onClick={() => sendMessage("What can you help me with?")}>
-                  What can you help me with?
-                </div>
-                <div aria-hidden className="p-2 bg-white rounded hover:bg-blue-50 cursor-pointer"
-                  onClick={() => sendMessage("Tell me a fun fact about programming.")}>
-                  Tell me a fun fact about programming.
-                </div>
-                <div aria-hidden className="p-2 bg-white rounded hover:bg-blue-50 cursor-pointer"
-                  onClick={() => sendMessage("Explain how a blockchain works.")}>
-                  Explain how a blockchain works.
-                </div>
-              </div>
-            </div>
+
           </div>
         ) : (
           messages.map((message, index) => (
@@ -45,13 +27,29 @@ const HomePage = () => {
             />
           ))
         )}
-        <div ref={messagesEndRef} />
       </div>
       <div className={`max-w-4xl w-full mx-auto ${messages.length === 0 ? '' : 'sticky'} bottom-0 bg-white p-4`}>
+        <div className="p-6 rounded-lg w-full text-center">
+          <p className="text-gray-700 font-medium mb-4">Vài loại câu hỏi tớ có thể trả lời:</p>
+          <div className="space-x-2 text-gray-600 text-sm flex flex-wrap">
+            <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
+              onClick={() => sendMessage("Làm thế nào để có người yêu?")}>
+              Làm thế nào để có người yêu?
+            </div>
+            <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
+              onClick={() => sendMessage("Tại sao lập trình viên không thích deadline?")}>
+              Tại sao lập trình viên không thích deadline?
+            </div>
+            <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
+              onClick={() => sendMessage("Vì sao thứ 2 là ngày buồn nhất trong tuần?")}>
+              Vì sao thứ 2 là ngày buồn nhất trong tuần?
+            </div>
+          </div>
+        </div>
         <ChatInput
           onSubmit={sendMessage}
           isDisabled={isTyping}
-          placeholder={isTyping ? "ViVu is typing..." : "Type your message..."}
+          placeholder={isTyping ? "Chờ tý! tớ đang trả lời mà..." : "Gõ đê bạn ơi..."}
         />
       </div>
 
