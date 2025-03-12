@@ -6,7 +6,7 @@ const MainLayout = () => {
     <div className="flex min-h-screen">
       <Sidebar />
       <div className="flex flex-col flex-1">
-        <main className="flex-1 p-6 flex justify-center items-center">
+        <main className="flex-1 overflow-hidden">
           <Outlet />
         </main>
       </div>
