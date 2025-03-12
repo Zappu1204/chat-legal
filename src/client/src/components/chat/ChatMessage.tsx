@@ -13,49 +13,46 @@ interface ChatMessageProps {
 
 const ChatMessage = memo(({ message, isLoading = false }: ChatMessageProps) => {
   const [collapsed, setCollapsed] = useState(false);
-  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [elapsedTime, setElapsedTime] = useState<number>(message.thinkingTime || 0);
   const isUser = message.role === 'user';
   const typingDots = useTypingEffect(isLoading && !isUser);
-  
-  // Track elapsed time while thinking
+
+  // Live thinking time tracker
   useEffect(() => {
     if (!message.thinking) {
-      // When thinking stops, use the final thinking time
-      if (message.thinkingTime && message.thinkingTime > 0) {
+      if (message.thinkingTime) {
         setElapsedTime(message.thinkingTime);
-      } else if (message.thinkingStartTime) {
-        // If we have a start time but no final time, calculate it
-        setElapsedTime(Date.now() - message.thinkingStartTime);
       }
       return;
     }
-    
-    // While thinking is active, update the time every 100ms
+
     const startTime = message.thinkingStartTime || Date.now();
     const intervalId = setInterval(() => {
       setElapsedTime(Date.now() - startTime);
     }, 100);
-    
+
     return () => clearInterval(intervalId);
   }, [message.thinking, message.thinkingStartTime, message.thinkingTime]);
-  
+
   const formatThinkingTime = (ms?: number) => {
-    // Don't display 0.0 seconds
     if (!ms || ms < 100) return '';
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(1)} second${ms >= 2000 ? 's' : ''}`;
   };
-  
+
   const hasThinking = !!message.think && message.think.trim() !== '';
   const shouldShowThinking = message.thinking || hasThinking;
-  
+
   // Determine thinking display text
-  const thinkingText = message.thinking 
-    ? `Thinking...${formatThinkingTime(elapsedTime)}` 
-    : hasThinking && elapsedTime > 0 
-      ? `Thought for ${formatThinkingTime(message.thinkingTime || elapsedTime)}` 
-      : "Thinking...";
-  
+  let thinkingText = "";
+  if (message.thinking) {
+    thinkingText = `Chờ xí! tớ đang nghĩ... ${formatThinkingTime(elapsedTime)}${typingDots}`;
+  } else if (hasThinking && elapsedTime > 0) {
+    thinkingText = `Tớ nghĩ hơi lâu, mất tận ${formatThinkingTime(message.thinkingTime ?? elapsedTime)}`;
+  } else if (hasThinking) {
+    thinkingText = "Suy nghĩ";
+  }
+
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"} p-4`}>
       <div className={`p-3 px-4 max-w-[95%] ${isUser ? "bg-blue-100 rounded-full" : ""}`}>

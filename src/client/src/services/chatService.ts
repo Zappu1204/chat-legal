@@ -1,5 +1,5 @@
 import api from './api';
-import { OllamaChatRequest, OllamaCompletionResponse, MessageRole } from '../types/chat';
+import { OllamaChatRequest, OllamaCompletionResponse } from '../types/chat';
 
 // Define a more complete enhanced response type
 interface EnhancedOllamaResponse extends OllamaCompletionResponse {
@@ -25,8 +25,11 @@ const chatService = {
     let messageQueue = '';
     let thinkQueue = '';
     let isThinking = false;
-    let thinkingStartTime: number | undefined;
-    let finalThinkingTime: number | undefined;
+    
+    // Store timestamps for thinking calculation
+    let thinkStartTimestamp: string | undefined;
+    let thinkEndTimestamp: string | undefined;
+    let clientSideThinkingStartTime: number | undefined;
     
     // Get the auth token for the request
     const userStr = localStorage.getItem('user');
@@ -43,7 +46,7 @@ const chatService = {
     }
     
     // Process incoming message chunks to properly handle thinking parts and content parts
-    const processMessageContent = (content: string): {
+    const processMessageContent = (content: string, timestamp: string): {
       think: string;
       content: string;
       thinking: boolean;
@@ -57,19 +60,17 @@ const chatService = {
         content: messageQueue,
         thinking: isThinking,
         hasFinishedThinking: false,
-        thinkingStartTime,
-        thinkingTime: finalThinkingTime
+        thinkingStartTime: clientSideThinkingStartTime,
+        thinkingTime: undefined as number | undefined
       };
       
       // Handle think tags
       if (content.includes('<think>')) {
-        // Set thinking start time when we first enter thinking state
+        // Set thinking start timestamp when we first enter thinking state
         if (!isThinking) {
-          thinkingStartTime = Date.now();
-          // Store in session storage for persistence
-          sessionStorage.setItem('thinkingStartTime', thinkingStartTime.toString());
-          sessionStorage.removeItem('thinkingTime');
-          result.thinkingStartTime = thinkingStartTime;
+          thinkStartTimestamp = timestamp;
+          clientSideThinkingStartTime = Date.now();
+          result.thinkingStartTime = clientSideThinkingStartTime;
         }
         
         isThinking = true;
@@ -86,26 +87,23 @@ const chatService = {
           const contentAfterThinking = content.substring(endIndex + '</think>'.length).trim();
           result.content = messageQueue + contentAfterThinking;
           
-          // Calculate thinking time if thinking has finished
-          if (thinkingStartTime) {
-            finalThinkingTime = Date.now() - thinkingStartTime;
-            sessionStorage.setItem('thinkingTime', finalThinkingTime.toString());
-            sessionStorage.removeItem('thinkingStartTime');
-            result.thinkingTime = finalThinkingTime;
-          } else {
-            // If we don't have a start time, try to get from sessionStorage
-            const storedStartTime = sessionStorage.getItem('thinkingStartTime');
-            if (storedStartTime) {
-              finalThinkingTime = Date.now() - parseInt(storedStartTime);
-              sessionStorage.setItem('thinkingTime', finalThinkingTime.toString());
-              sessionStorage.removeItem('thinkingStartTime');
-              result.thinkingTime = finalThinkingTime;
-            }
+          // Record thinking end timestamp
+          thinkEndTimestamp = timestamp;
+          
+          // Calculate thinking time from timestamps if both are available
+          if (thinkStartTimestamp && thinkEndTimestamp) {
+            const startDate = new Date(thinkStartTimestamp).getTime();
+            const endDate = new Date(thinkEndTimestamp).getTime();
+            result.thinkingTime = endDate - startDate;
+          } else if (clientSideThinkingStartTime) {
+            // Fall back to client-side timing if server timestamps are missing
+            result.thinkingTime = Date.now() - clientSideThinkingStartTime;
           }
           
           isThinking = false;
           result.thinking = false;
           result.hasFinishedThinking = true;
+          clientSideThinkingStartTime = undefined;
         } else {
           // Partial thinking (only start tag)
           const thinkContent = content.substring(startIndex).trim();
@@ -124,26 +122,23 @@ const chatService = {
           const contentAfterThinking = content.substring(endIndex + '</think>'.length).trim();
           result.content = messageQueue + contentAfterThinking;
           
-          // Calculate thinking time if thinking has finished
-          if (thinkingStartTime) {
-            finalThinkingTime = Date.now() - thinkingStartTime;
-            sessionStorage.setItem('thinkingTime', finalThinkingTime.toString());
-            sessionStorage.removeItem('thinkingStartTime');
-            result.thinkingTime = finalThinkingTime;
-          } else {
-            // If we don't have a start time, try to get from sessionStorage
-            const storedStartTime = sessionStorage.getItem('thinkingStartTime');
-            if (storedStartTime) {
-              finalThinkingTime = Date.now() - parseInt(storedStartTime);
-              sessionStorage.setItem('thinkingTime', finalThinkingTime.toString());
-              sessionStorage.removeItem('thinkingStartTime');
-              result.thinkingTime = finalThinkingTime;
-            }
+          // Record thinking end timestamp
+          thinkEndTimestamp = timestamp;
+          
+          // Calculate thinking time from timestamps
+          if (thinkStartTimestamp && thinkEndTimestamp) {
+            const startDate = new Date(thinkStartTimestamp).getTime();
+            const endDate = new Date(thinkEndTimestamp).getTime();
+            result.thinkingTime = endDate - startDate;
+          } else if (clientSideThinkingStartTime) {
+            // Fall back to client-side timing
+            result.thinkingTime = Date.now() - clientSideThinkingStartTime;
           }
           
           isThinking = false;
           result.thinking = false;
           result.hasFinishedThinking = true;
+          clientSideThinkingStartTime = undefined;
         } else {
           // Still thinking
           result.think = thinkQueue + content;
@@ -151,14 +146,38 @@ const chatService = {
         }
       } else {
         // Normal content (no thinking)
-        result.content = messageQueue + content;
-        result.thinking = false;
-        
-        // If we have a calculated thinking time, make sure it's included
-        const storedThinkingTime = sessionStorage.getItem('thinkingTime');
-        if (storedThinkingTime) {
-          result.thinkingTime = parseInt(storedThinkingTime);
+        // Check if the content contains an ending think tag without a start tag
+        // This can happen if the start tag was in a previous chunk
+        if (content.includes('</think>')) {
+          const endIndex = content.indexOf('</think>');
+          const thinkContent = content.substring(0, endIndex).trim();
+          
+          if (thinkQueue) {
+            result.think = thinkQueue + thinkContent;
+          }
+          
+          // Extract actual content after thinking
+          const contentAfterThinking = content.substring(endIndex + '</think>'.length).trim();
+          result.content = messageQueue + contentAfterThinking;
+          
+          // Record thinking end timestamp
+          thinkEndTimestamp = timestamp;
+          
+          // Calculate thinking time
+          if (thinkStartTimestamp && thinkEndTimestamp) {
+            const startDate = new Date(thinkStartTimestamp).getTime();
+            const endDate = new Date(thinkEndTimestamp).getTime();
+            result.thinkingTime = endDate - startDate;
+          } else if (clientSideThinkingStartTime) {
+            result.thinkingTime = Date.now() - clientSideThinkingStartTime;
+          }
+          
+          result.hasFinishedThinking = true;
+          clientSideThinkingStartTime = undefined;
+        } else {
+          result.content = messageQueue + content;
         }
+        result.thinking = false;
       }
       
       // Update global state
@@ -175,11 +194,13 @@ const chatService = {
           rawData = JSON.parse(rawData);
         }
         
+        const timestamp = rawData.created_at || new Date().toISOString();
+        
         // Handle case of no message content
         if (!rawData.message?.content) {
           return {
             model: rawData.model || request.model,
-            created_at: rawData.created_at || new Date().toISOString(),
+            created_at: timestamp,
             message: {
               role: 'assistant',
               content: messageQueue
@@ -187,18 +208,31 @@ const chatService = {
             done: !!rawData.done,
             thinking: isThinking,
             think: thinkQueue,
-            thinkingStartTime: thinkingStartTime,
-            thinkingTime: finalThinkingTime
+            thinkingStartTime: clientSideThinkingStartTime,
+            thinkingTime: calculateThinkingTime()
           };
         }
         
+        // Check if this message contains thinking tags
+        const messageContent = rawData.message.content;
+        
+        // Track thinking state based on content
+        if (messageContent.includes('<think>') && !isThinking) {
+          thinkStartTimestamp = timestamp;
+          clientSideThinkingStartTime = Date.now();
+          isThinking = true;
+        } else if (messageContent.includes('</think>') && isThinking) {
+          thinkEndTimestamp = timestamp;
+          isThinking = false;
+        }
+        
         // Process the message content to separate thinking and content
-        const processed = processMessageContent(rawData.message.content);
+        const processed = processMessageContent(messageContent, timestamp);
         
         // Create transformed response
-        const response = {
+        return {
           model: rawData.model || request.model,
-          created_at: rawData.created_at || new Date().toISOString(),
+          created_at: timestamp,
           message: {
             role: 'assistant',
             content: processed.content
@@ -206,21 +240,9 @@ const chatService = {
           done: !!rawData.done,
           thinking: processed.thinking,
           think: processed.think,
-          thinkingStartTime: processed.thinkingStartTime,
-          thinkingTime: processed.thinkingTime
+          thinkingStartTime: processed.thinkingStartTime || clientSideThinkingStartTime,
+          thinkingTime: processed.thinkingTime || calculateThinkingTime()
         };
-
-        // Ensure we always have a thinkingTime value for completed responses with thinking
-        if (response.done && response.think && !response.thinking && !response.thinkingTime) {
-          const storedThinkingTime = sessionStorage.getItem('thinkingTime');
-          if (storedThinkingTime) {
-            response.thinkingTime = parseInt(storedThinkingTime);
-          } else if (thinkingStartTime) {
-            response.thinkingTime = Date.now() - thinkingStartTime;
-          }
-        }
-        
-        return response;
       } catch (e) {
         console.error("Error transforming message:", e);
         
@@ -235,10 +257,26 @@ const chatService = {
           done: false,
           thinking: isThinking,
           think: thinkQueue,
-          thinkingStartTime: thinkingStartTime,
-          thinkingTime: finalThinkingTime
+          thinkingStartTime: clientSideThinkingStartTime,
+          thinkingTime: calculateThinkingTime()
         };
       }
+    };
+    
+    // Helper function to calculate thinking time based on timestamps or client timing
+    const calculateThinkingTime = (): number | undefined => {
+      if (thinkStartTimestamp && thinkEndTimestamp) {
+        const startDate = new Date(thinkStartTimestamp).getTime();
+        const endDate = new Date(thinkEndTimestamp).getTime();
+        return endDate - startDate;
+      } else if (clientSideThinkingStartTime && isThinking) {
+        // For real-time updates during thinking
+        return Date.now() - clientSideThinkingStartTime;
+      } else if (clientSideThinkingStartTime && thinkEndTimestamp) {
+        // Fallback when thinking has ended but we're missing start timestamp
+        return new Date(thinkEndTimestamp).getTime() - clientSideThinkingStartTime;
+      }
+      return undefined;
     };
 
     // Start the streaming request using fetch with appropriate headers
@@ -283,7 +321,7 @@ const chatService = {
             buffer = buffer.substring(lineEnd + 1);
             
             // Skip empty lines and non-data lines
-            if (!line || !line.startsWith('data:')) {
+            if (!line?.startsWith('data:')) {
               lineEnd = buffer.indexOf('\n');
               continue;
             }
@@ -299,6 +337,17 @@ const chatService = {
                 onError(new Error(data.error));
                 return;
               }
+
+              // Store "thinking" events based on content
+              if (data.message?.content) {
+                if (data.message.content.includes('<think>') && !isThinking) {
+                  thinkStartTimestamp = data.created_at;
+                  isThinking = true;
+                } else if (data.message.content.includes('</think>') && isThinking) {
+                  thinkEndTimestamp = data.created_at;
+                  isThinking = false;
+                }
+              }
               
               // Transform and send the message
               const transformedMessage = transformToMessageWithThinking(data);
@@ -306,16 +355,17 @@ const chatService = {
               
               // Handle completion
               if (data.done) {
-                // Send final message
+                // Send final message with calculated thinking time
                 const finalMessage: EnhancedOllamaResponse = {
                   ...transformedMessage,
-                  done: true
+                  done: true,
+                  thinkingTime: calculateThinkingTime()
                 };
                 onMessage(finalMessage);
                 return;
               }
             } catch (e) {
-              console.warn("Error parsing SSE message:", e);
+              console.warn("Error parsing SSE message:", e, jsonStr);
               // Continue processing - don't break on parse errors
             }
             
