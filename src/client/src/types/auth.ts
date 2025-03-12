@@ -17,6 +17,19 @@ export interface LogoutRequest {
   username: string;
 }
 
+export interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+  phoneNumber?: string;
+  roles?: string[];
+}
+
+export interface MessageResponse {
+  message: string;
+  success: boolean;
+}
+
 export interface ApiError {
   message: string;
   status: number;

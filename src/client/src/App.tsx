@@ -4,6 +4,7 @@ import ProtectedRoute from './components/routing/ProtectedRoute'
 import AnonymousLayout from './layouts/AnonymousLayout'
 import MainLayout from './layouts/MainLayout'
 import LoginPage from './pages/auth/LoginPage'
+import RegisterPage from './pages/auth/RegisterPage'
 import HomePage from './pages/HomePage'
 import NotFoundPage from './pages/NotFoundPage'
 import './App.css'
@@ -16,6 +17,7 @@ function App() {
           {/* Anonymous routes */}
           <Route element={<AnonymousLayout />}>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
           </Route>
           
           {/* Protected routes */}

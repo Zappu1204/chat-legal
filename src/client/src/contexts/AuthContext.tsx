@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
-import { JwtResponse } from '../types/auth';
+import { JwtResponse, RegisterRequest, MessageResponse } from '../types/auth';
 import authService from '../services/authService';
 
 interface AuthContextType {
     user: JwtResponse | null;
     loading: boolean;
     login: (username: string, password: string) => Promise<JwtResponse>;
+    register: (registerData: RegisterRequest) => Promise<MessageResponse>;
     logout: () => Promise<void>;
     isAuthenticated: boolean;
 }
@@ -55,6 +56,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
     }, []);
 
+    const register = useCallback(async (registerData: RegisterRequest): Promise<MessageResponse> => {
+        try {
+            setLoading(true);
+            const response = await authService.register(registerData);
+            return response;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     const logout = useCallback(async () => {
         try {
             setLoading(true);
@@ -74,9 +85,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         user,
         loading,
         login,
+        register,
         logout,
         isAuthenticated: !!user,
-    }), [user, loading, login, logout]);
+    }), [user, loading, login, register, logout]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

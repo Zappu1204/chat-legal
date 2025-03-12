@@ -1,10 +1,15 @@
 import api from './api';
-import { JwtResponse, LoginRequest, LogoutRequest } from '../types/auth';
+import { JwtResponse, LoginRequest, LogoutRequest, RegisterRequest, MessageResponse } from '../types/auth';
 
 const authService = {
   login: async (username: string, password: string): Promise<JwtResponse> => {
     const loginRequest: LoginRequest = { username, password };
     const response = await api.post<JwtResponse>('/api/auth/login', loginRequest);
+    return response.data;
+  },
+  
+  register: async (registerData: RegisterRequest): Promise<MessageResponse> => {
+    const response = await api.post<MessageResponse>('/api/auth/register', registerData);
     return response.data;
   },
   

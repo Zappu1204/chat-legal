@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -98,6 +98,13 @@ const LoginPage = () => {
             >
               {isSubmitting ? <LoadingSpinner size="small" /> : 'Sign In'}
             </button>
+            
+            <div className="text-center mt-6">
+              <span className="text-gray-600">Don't have an account? </span>
+              <Link to="/register" className="text-blue-600 hover:text-blue-800 font-medium">
+                Sign up
+              </Link>
+            </div>
           </Form>
         )}
       </Formik>

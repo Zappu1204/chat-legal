@@ -97,7 +97,7 @@ const Sidebar = () => {
                 <div
                     ref={profileButtonRef}
                     aria-hidden="true"
-                    className='block p-2 hover:cursor-pointer w-14 h-14'
+                    className={`block hover:cursor-pointer w-14 h-14 ${isCollapsed ? 'p-2' : ''}`}
                     onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                 >
                     <img
@@ -108,8 +108,8 @@ const Sidebar = () => {
                 </div>
                 {!isCollapsed && (
                     <div className="user-info ml-2 flex-grow">
-                        <p className="font-medium text-gray-800">{user?.username || 'User'}</p>
-                        <p className="text-xs text-gray-500">{user?.email || ''}</p>
+                        <p className="font-medium text-gray-800">{user?.username ?? 'User'}</p>
+                        <p className="text-xs text-gray-500">{user?.email ?? ''}</p>
                     </div>
                 )}
                 <div
