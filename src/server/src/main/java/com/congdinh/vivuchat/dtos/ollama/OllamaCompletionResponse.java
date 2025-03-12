@@ -1,6 +1,5 @@
 package com.congdinh.vivuchat.dtos.ollama;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,7 +12,6 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OllamaCompletionResponse {
     private String model;
@@ -22,8 +20,8 @@ public class OllamaCompletionResponse {
     private boolean done;
     private String done_reason;
     private List<Integer> context;
-    private long total_duration; // Changed from Map to long
-    private long load_duration;  // Changed from Map to long
+    private long total_duration;
+    private long load_duration;
     private int prompt_eval_count;
     private long prompt_eval_duration;
     private int eval_count;
@@ -33,6 +31,7 @@ public class OllamaCompletionResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class OllamaMessage {
         private String role;
         private String content;
