@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { ChatProvider } from './contexts/ChatContext'
 import ProtectedRoute from './components/routing/ProtectedRoute'
 import AnonymousLayout from './layouts/AnonymousLayout'
 import MainLayout from './layouts/MainLayout'
@@ -20,10 +21,14 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
           </Route>
           
-          {/* Protected routes */}
+          {/* Protected routes with ChatProvider for chat related pages */}
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>
-              <Route path="/" element={<HomePage />} />
+              <Route path="/" element={
+                <ChatProvider>
+                  <HomePage />
+                </ChatProvider>
+              } />
               {/* Add more routes here */}
             </Route>
           </Route>
