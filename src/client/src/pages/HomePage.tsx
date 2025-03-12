@@ -8,12 +8,12 @@ const HomePage = () => {
   const { messages, isTyping, error, sendMessage, dismissError } = useChat();
 
   return (
-    <div className="flex flex-col justify-center h-screen overflow-y-auto">
-      <div className={`max-w-4xl w-full mx-auto ${messages.length === 0 ? '' : 'flex-grow'}`}>
+    <div className="flex flex-col h-screen overflow-y-auto">
+      <div className={`max-w-4xl w-full mx-auto flex-grow`}>
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
+          <div className="flex flex-col items-center justify-end h-full text-center">
             <h2 className="text-2xl font-bold text-gray-700 mb-4">Chào bạn, Tớ là ViVu AI!</h2>
-            <p className="text-gray-600 mb-8">
+            <p className="text-gray-600">
               {user?.username} ngoan xinh yêu ơi! Cứ hành tớ thoải mái nhé?
             </p>
 
@@ -28,24 +28,26 @@ const HomePage = () => {
           ))
         )}
       </div>
-      <div className={`max-w-4xl w-full mx-auto ${messages.length === 0 ? '' : 'sticky'} bottom-0 bg-white p-4`}>
-        <div className="p-6 rounded-lg w-full text-center">
-          <p className="text-gray-700 font-medium mb-4">Vài loại câu hỏi tớ có thể trả lời:</p>
-          <div className="space-x-2 text-gray-600 text-sm flex flex-wrap">
-            <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
-              onClick={() => sendMessage("Làm thế nào để có người yêu?")}>
-              Làm thế nào để có người yêu?
-            </div>
-            <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
-              onClick={() => sendMessage("Tại sao lập trình viên không thích deadline?")}>
-              Tại sao lập trình viên không thích deadline?
-            </div>
-            <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
-              onClick={() => sendMessage("Vì sao thứ 2 là ngày buồn nhất trong tuần?")}>
-              Vì sao thứ 2 là ngày buồn nhất trong tuần?
+      <div className={`flex-grow max-w-4xl w-full mx-auto ${messages.length === 0 ? '' : 'sticky'} bottom-0 bg-white p-4`}>
+        {messages.length === 0 && (
+          <div className="p-6 rounded-lg w-full text-center">
+            <p className="text-gray-700 font-medium mb-4">Vài loại câu hỏi tớ có thể trả lời:</p>
+            <div className="space-x-2 text-gray-600 text-sm flex flex-wrap">
+              <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
+                onClick={() => sendMessage("Làm thế nào để có người yêu?")}>
+                Làm thế nào để có người yêu?
+              </div>
+              <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
+                onClick={() => sendMessage("Tại sao lập trình viên không thích deadline?")}>
+                Tại sao lập trình viên không thích deadline?
+              </div>
+              <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
+                onClick={() => sendMessage("Vì sao thứ 2 là ngày buồn nhất trong tuần?")}>
+                Vì sao thứ 2 là ngày buồn nhất trong tuần?
+              </div>
             </div>
           </div>
-        </div>
+        )}
         <ChatInput
           onSubmit={sendMessage}
           isDisabled={isTyping}
