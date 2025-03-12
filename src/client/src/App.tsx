@@ -1,16 +1,37 @@
-import viteLogo from '/vite.svg'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './contexts/AuthContext'
+import ProtectedRoute from './components/routing/ProtectedRoute'
+import AnonymousLayout from './layouts/AnonymousLayout'
+import MainLayout from './layouts/MainLayout'
+import LoginPage from './pages/auth/LoginPage'
+import HomePage from './pages/HomePage'
+import NotFoundPage from './pages/NotFoundPage'
 import './App.css'
 
 function App() {
-
   return (
-    <div className='flex flex-col items-center justify-center min-h-screen py-2'>
-      <img src={viteLogo} alt="Vite Logo" className="logo" />
-      <h1 className="title">Hello, I'm ViVu Chat!</h1>
-      <p className="description">
-        Today, How can I help you?
-      </p>
-    </div>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Anonymous routes */}
+          <Route element={<AnonymousLayout />}>
+            <Route path="/login" element={<LoginPage />} />
+          </Route>
+          
+          {/* Protected routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<HomePage />} />
+              {/* Add more routes here */}
+            </Route>
+          </Route>
+          
+          {/* Redirect to login if not found */}
+          <Route path="/404" element={<NotFoundPage />} />
+          <Route path="*" element={<Navigate to="/404" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 
