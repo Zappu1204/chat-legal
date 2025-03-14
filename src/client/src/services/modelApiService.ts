@@ -3,6 +3,11 @@ import { AIModel } from '../components/chat/ModelSelector';
 
 /**
  * Service for interacting with the Ollama model API endpoints
+ * This service provides methods for:
+ * - listing available models
+ * - pulling new models
+ * - getting details about specific models
+ * - deleting models
  */
 const modelApiService = {
   /**
