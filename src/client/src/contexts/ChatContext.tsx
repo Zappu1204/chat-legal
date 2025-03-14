@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, ReactNode, useCallback, useRef, useEffect, useState, useMemo } from 'react';
+import { createContext, useContext, useReducer, ReactNode, useCallback, useRef, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { ChatMessage, ChatResponse, ChatState, OllamaChatRequest } from '../types/chat';
 import chatService from '../services/chatService';
@@ -76,7 +76,6 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
 // Provider component
 export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: ReactNode; modelId?: string }) => {
   const abortControllerRef = useRef<(() => void) | null>(null);
-  const [isInitializing, setIsInitializing] = useState(false);
   
   const initialState: ChatState = {
     messages: [],
@@ -119,7 +118,6 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
   // Create a new chat session - now with option to create locally only
   const createNewChat = useCallback(async (createInDatabase: boolean = true) => {
     try {
-      setIsInitializing(true);
       dispatch({ type: 'SET_ERROR', payload: null });
       
       if (createInDatabase) {
@@ -152,8 +150,6 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
       const errorMessage = error instanceof Error ? error.message : 'Failed to create chat session';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       return null;
-    } finally {
-      setIsInitializing(false);
     }
   }, [modelId, loadChatHistory]);
 

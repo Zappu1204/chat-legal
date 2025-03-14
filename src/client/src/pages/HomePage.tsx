@@ -44,11 +44,11 @@ const HomePage = () => {
             <div className="flex flex-col items-center justify-end h-full text-center">
               <h2 className="text-2xl font-bold text-gray-700 mb-4">Chào bạn, Tớ là ViVu AI!</h2>
               <p className="text-gray-600">
-                {user?.username} ngoan xinh yêu ơi! Cứ hành tớ thoải mái nhé?
+                <span className="font-semibold">{user?.username}</span> ngoan xinh yêu ơi! Cứ hành tớ thoải mái nhé?
               </p>
               {!activeChatId && (
                 <p className="text-gray-500 mt-2 text-sm italic">
-                  (Hãy nhắn tin cho tớ để bắt đầu trò chuyện nhé!)
+                  (Hãy nhắn tin cho tớ để bắt đầu trò chuyện nào!)
                 </p>
               )}
             </div>
