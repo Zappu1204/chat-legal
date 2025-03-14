@@ -5,14 +5,17 @@ import ChatMessage from '../components/chat/ChatMessage';
 import ChatInput from '../components/chat/ChatInput';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSave, faCircleNotch } from '@fortawesome/free-solid-svg-icons';
+import ModelSelector from '../components/chat/ModelSelector';
+import { useState } from 'react';
 
 const HomePage = () => {
   const { user } = useAuth();
   const { messages, isTyping, error, isSaving, activeChatId, chatTitle, sendMessage, dismissError } = useChat();
   const { messagesEndRef, isNearBottom, scrollToBottom } = useChatScroll(messages, isTyping);
+  const [selectedModel, setSelectedModel] = useState('gemma3:1b'); // Default model
 
   const handleSendMessage = (message: string) => {
-    sendMessage(message);
+    sendMessage(message, selectedModel);
     // Force scroll to bottom when sending a new message
     setTimeout(scrollToBottom, 500);
   };
@@ -21,23 +24,31 @@ const HomePage = () => {
     <div className="flex flex-col h-screen overflow-y-auto">
       <div className="max-w-4xl w-full mx-auto flex-grow flex flex-col justify-end p-4">
         {/* Chat title/status bar - only show when there's an active chat */}
-        {activeChatId && (
-          <div className="sticky top-0 bg-white z-10 p-2 border-b border-slate-100 flex justify-between items-center">
-            <h2 className="text-xl font-semibol text-center text-gray-700 truncate">{chatTitle}</h2>
-            {isSaving && (
-              <div className="flex items-center text-sm text-blue-500">
-                <FontAwesomeIcon icon={faCircleNotch} spin className="mr-2" />
-                <span>Tớ đang lưu nè...</span>
-              </div>
-            )}
-            {!isSaving && activeChatId && (
-              <div className="flex items-center text-sm text-green-500">
-                <FontAwesomeIcon icon={faSave} className="mr-2" />
-                <span>Đã lưu xong rồi á!</span>
-              </div>
-            )}
+        <div className="sticky top-0 bg-white z-10 p-2 border-b border-slate-100 flex justify-between items-center">
+          <div className="select-models">
+            <ModelSelector
+              selectedModel={selectedModel}
+              onSelectModel={setSelectedModel}
+            />
           </div>
-        )}
+          {activeChatId && (
+            <>
+              <h2 className="text-xl font-semibol text-center text-gray-700 truncate">{chatTitle}</h2>
+              {isSaving && (
+                <div className="flex items-center text-sm text-blue-500">
+                  <FontAwesomeIcon icon={faCircleNotch} spin className="mr-2" />
+                  <span>Tớ đang lưu nè...</span>
+                </div>
+              )}
+              {!isSaving && activeChatId && (
+                <div className="flex items-center text-sm text-green-500">
+                  <FontAwesomeIcon icon={faSave} className="mr-2" />
+                  <span>Đã lưu xong rồi á!</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         <div className="flex-grow">
           {messages.length === 0 ? (
@@ -62,9 +73,9 @@ const HomePage = () => {
             ))
           )}
           <div ref={messagesEndRef} />
-          
+
           {!isNearBottom && isTyping && (
-            <button 
+            <button
               onClick={scrollToBottom}
               className="fixed bottom-24 right-8 bg-blue-500 text-white rounded-full p-2 shadow-lg hover:bg-blue-600 transition-all"
               aria-label="Kéo xuống để xem tin nhắn mới nhé!"
@@ -98,8 +109,8 @@ const HomePage = () => {
           onSubmit={handleSendMessage}
           isDisabled={isTyping || isSaving}
           placeholder={
-            isTyping ? "Chờ tý! tớ đang trả lời mà..." : 
-            isSaving ? "Đang lưu..." : "Gõ đê bạn ơi..."
+            isTyping ? "Chờ tý! tớ đang trả lời mà..." :
+              isSaving ? "Đang lưu..." : "Gõ đê bạn ơi..."
           }
         />
       </div>

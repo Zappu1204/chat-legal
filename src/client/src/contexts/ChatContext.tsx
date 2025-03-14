@@ -5,10 +5,10 @@ import chatService from '../services/chatService';
 import chatApiService from '../services/chatApiService';
 
 interface ChatContextType extends ChatState {
-  sendMessage: (content: string) => void;
+  sendMessage: (content: string, model?: string) => void;
   clearMessages: () => void;
   dismissError: () => void;
-  createNewChat: (createInDatabase?: boolean) => Promise<ChatResponse | null>;
+  createNewChat: (createInDatabase?: boolean, model?: string) => Promise<ChatResponse | null>;
   loadChatHistory: () => Promise<void>;
   selectChat: (chatId: string) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
@@ -116,13 +116,14 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
   }, []);
 
   // Create a new chat session - now with option to create locally only
-  const createNewChat = useCallback(async (createInDatabase: boolean = true) => {
+  const createNewChat = useCallback(async (createInDatabase: boolean = true, model?: string) => {
     try {
       dispatch({ type: 'SET_ERROR', payload: null });
       
       if (createInDatabase) {
         // Create a new chat on the server
-        const response = await chatApiService.createChat(modelId);
+        const useModelId = model ?? modelId;
+        const response = await chatApiService.createChat(useModelId);
         
         // Set the active chat
         dispatch({ type: 'SET_ACTIVE_CHAT', payload: { 
@@ -259,7 +260,7 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
 
   // Send a message
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, model?: string) => {
       if (!content.trim() || state.isTyping) return;
 
       // Reset state for new message
@@ -295,7 +296,7 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
       
       if (!currentChatId) {
         // Now actually create the chat in the database since user is sending a message
-        const newChat = await createNewChat(true); // Pass true to create in database
+        const newChat = await createNewChat(true, model); // Pass true to create in database along with optional model
         if (!newChat) {
           dispatch({ type: 'SET_TYPING', payload: false });
           return;
@@ -348,7 +349,7 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
       try {
         // Send streaming request to Ollama
         const request: OllamaChatRequest = {
-          model: modelId,
+          model: model || modelId,
           messages: messagesToSend,
           streaming: true,
           options: {
