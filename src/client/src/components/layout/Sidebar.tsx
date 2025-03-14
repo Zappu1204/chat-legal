@@ -99,6 +99,8 @@ const Sidebar = () => {
 
     const handleNewChat = () => {
         // Pass false to prevent API call, just reset UI
+        // Navigate to chat page to start a new chat
+        navigate('/');
         createNewChat(false);
     };
 
@@ -140,8 +142,8 @@ const Sidebar = () => {
                         </div>
                     ) : chatHistory.length === 0 ? (
                         <div className="text-center text-gray-500 p-4">
-                            <p className="text-sm">No chats yet</p>
-                            <p className="text-xs">Start a new conversation!</p>
+                            <p className="text-sm">Không có cuộc trò chuyện nào</p>
+                            <p className="text-xs">Bắt đầu cuộc trò chuyện mới!</p>
                         </div>
                     ) : (
                         chatHistory.map(chat => (
@@ -160,7 +162,7 @@ const Sidebar = () => {
             <div className={`flex justify-between items-center relative border-t border-gray-300 ${isCollapsed ? 'flex-col' : 'w-full px-3 py-2'}`}>
                 <div ref={profileButtonRef} aria-hidden="true" className={`block hover:cursor-pointer w-12 h-12 ${isCollapsed ? 'p-1' : ''} transition-all`}
                     onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
-                    <img src={Logo} alt='profile' className='border border-blue-500 rounded-full hover:border-blue-700 transition-all'/>
+                    <img src={Logo} alt='profile' className='border border-blue-500 rounded-full hover:border-blue-700 transition-all' />
                 </div>
                 {!isCollapsed && (
                     <div className="user-info ml-2 flex-grow">
@@ -173,9 +175,12 @@ const Sidebar = () => {
                     className={`absolute bottom-full ${isCollapsed ? 'left-4' : 'left-3'} w-36 bg-white shadow-lg rounded-md z-10 *:hover:cursor-pointer ${isProfileDropdownOpen ? 'block' : 'hidden'}`}
                 >
                     <Link to='/profile'
-                        className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white hover:rounded-t-md transition-colors'
-                        onClick={() => setIsProfileDropdownOpen(false)}>
+                        className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white hover:rounded-t-md transition-colors'>
                         {user?.username ?? 'Profile'}
+                    </Link>
+                    <Link to='/settings'
+                        className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white hover:rounded-t-md transition-colors'>
+                        Cài đặt
                     </Link>
                     <button type="button" onClick={handleLogout}
                         className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white hover:rounded-b-md text-left transition-colors'>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRobot, faChevronDown, faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
-import api from '../../services/api';
+import modelApiService from '../../services/modelApiService';
 
 // Define strongly-typed interfaces
 export interface AIModel {
@@ -53,16 +53,12 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
         setError(null);
 
         try {
-            const response = await api.get('/api/ollama/models/available');
-            if (response.data?.models && Array.isArray(response.data.models)) {
-                setModels(response.data.models);
+            const models = await modelApiService.listModels();
+            setModels(models);
 
-                // If current selected model is not available, select first available model
-                if (response.data.models.length > 0 && !response.data.models.some(m => m.name === selectedModel)) {
-                    onSelectModel(response.data.models[0].name);
-                }
-            } else {
-                setError('Invalid response format from server');
+            // If current selected model is not available, select first available model
+            if (models.length > 0 && !models.some(m => m.name === selectedModel)) {
+                onSelectModel(models[0].name);
             }
         } catch (error) {
             console.error('Error fetching models:', error);
