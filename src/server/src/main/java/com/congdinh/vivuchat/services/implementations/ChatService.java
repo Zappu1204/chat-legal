@@ -24,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -112,6 +111,14 @@ public class ChatService implements IChatService {
         Chat chat = chatRepository.findByIdAndUser(chatId, user)
                 .orElseThrow(() -> new RuntimeException("Chat not found or you don't have access"));
         
+        // Debug log to check incoming message content
+        log.debug("Received message content: {}", request.getContent());
+        
+        // Validate message content
+        if (request.getContent() == null || request.getContent().trim().isEmpty()) {
+            throw new IllegalArgumentException("Message content cannot be empty");
+        }
+        
         // Validate model exists in Ollama before proceeding
         boolean modelExists = ollamaModelService.getModelDetails(chat.getModel()) != null;
         if (!modelExists) {
@@ -126,16 +133,29 @@ public class ChatService implements IChatService {
                 .model(chat.getModel())
                 .build();
                 
-        userMessage = messageRepository.save(userMessage);
+        messageRepository.save(userMessage);
         
-        // Get conversation history for context (last 20 messages)
+        // Count existing messages
         List<Message> chatHistory = messageRepository.findByChatOrderByCreatedAtAsc(chat);
+        
+        // Update chat title if this is the first user message
+        if (chat.getTitle().equals("New Chat") || chatHistory.size() <= 1) {
+            // Generate a title based on the first user message
+            String title = request.getContent();
+            if (title.length() > 30) {
+                title = title.substring(0, 27) + "...";
+            }
+            chat.setTitle(title);
+            chatRepository.save(chat);
+            log.info("Updated chat title to: {}", title);
+        }
+        
+        // Format messages for Ollama API - use only up to last 20 messages
         int maxHistoryMessages = 20;
         if (chatHistory.size() > maxHistoryMessages) {
             chatHistory = chatHistory.subList(chatHistory.size() - maxHistoryMessages, chatHistory.size());
         }
         
-        // Format messages for Ollama API
         List<Map<String, String>> messages = chatHistory.stream()
                 .map(msg -> {
                     Map<String, String> msgMap = new HashMap<>();
@@ -143,14 +163,8 @@ public class ChatService implements IChatService {
                     msgMap.put("content", msg.getContent());
                     return msgMap;
                 })
-                .collect(Collectors.toList());
+                .toList();
                 
-        // Add the most recent user message
-        Map<String, String> userMsg = new HashMap<>();
-        userMsg.put("role", "user");
-        userMsg.put("content", request.getContent());
-        messages.add(userMsg);
-        
         // Get response from Ollama
         OllamaCompletionResponse aiResponse = ollamaService.generateCompletion(chat.getModel(), messages);
         
@@ -163,17 +177,6 @@ public class ChatService implements IChatService {
                 .build();
                 
         assistantMessage = messageRepository.save(assistantMessage);
-        
-        // Update chat title if this is the first message
-        if (chatHistory.isEmpty() && chat.getTitle().equals("New Chat")) {
-            // Generate a title based on the first user message
-            String title = request.getContent();
-            if (title.length() > 30) {
-                title = title.substring(0, 27) + "...";
-            }
-            chat.setTitle(title);
-            chatRepository.save(chat);
-        }
         
         // Return the AI response
         return mapToMessageResponse(assistantMessage);
@@ -192,13 +195,13 @@ public class ChatService implements IChatService {
         
         return messages.stream()
                 .map(this::mapToMessageResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
     
     private ChatResponse mapToResponse(Chat chat, List<Message> messages) {
         List<ChatMessageResponse> messageResponses = messages.stream()
                 .map(this::mapToMessageResponse)
-                .collect(Collectors.toList());
+                .toList();
                 
         return ChatResponse.builder()
                 .id(chat.getId())

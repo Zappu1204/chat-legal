@@ -144,16 +144,36 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
     
     try {
       dispatch({ type: 'SET_SAVING', payload: true });
-      const response = await chatApiService.sendMessage(chatId, content);
+      
+      // Ensure we're sending the actual message content, not a reference or ID
+      const actualContent = content.trim();
+      
+      // Debug log to verify the content being sent
+      console.debug('Saving message content:', actualContent);
+      
+      const response = await chatApiService.sendMessage(chatId, actualContent);
       
       // If this was the first user message, the title might have been updated
-      if (isUserMessage && state.messages.filter(m => m.role === 'user').length === 0) {
+      if (isUserMessage && state.messages.filter(m => m.role === 'user').length === 1) {
         try {
+          // The server should set the title based on the first question
+          // But we can also fetch the updated chat to get the title
           const updatedChat = await chatApiService.getChat(chatId);
-          if (updatedChat.title !== state.chatTitle) {
+          
+          if (updatedChat.title && updatedChat.title !== state.chatTitle && updatedChat.title !== 'New Chat') {
             dispatch({ 
               type: 'SET_ACTIVE_CHAT', 
               payload: { id: chatId, title: updatedChat.title }
+            });
+          } else {
+            // As fallback, set the title from the first message if it wasn't set by the server
+            const truncatedTitle = actualContent.length > 50 
+              ? actualContent.substring(0, 47) + '...' 
+              : actualContent;
+              
+            dispatch({
+              type: 'SET_ACTIVE_CHAT',
+              payload: { id: chatId, title: truncatedTitle }
             });
           }
         } catch (e) {
@@ -217,6 +237,12 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
         }
       }
 
+      // Save the user message to the backend immediately
+      // This ensures the first message is used for chat title
+      if (state.activeChatId) {
+        await saveMessageToBackend(state.activeChatId, content, true);
+      }
+
       // Add placeholder for assistant's response
       const assistantMessage: ChatMessage = {
         id: assistantMessageId,
@@ -228,9 +254,6 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
       };
 
       dispatch({ type: 'ADD_MESSAGE', payload: assistantMessage });
-
-      // Save the user message to the backend
-      await saveMessageToBackend(state.activeChatId!, content, true);
 
       // Prepare API request with conversation history
       const messagesToSend = [
@@ -294,10 +317,15 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
               // Save the assistant response to the backend
               if (finalAssistantContent) {
                 // If thinking was included, format it properly for saving
+                // Make sure we're sending the actual content, not references
                 const contentToSave = finalAssistantThinking 
                   ? `<think>${finalAssistantThinking}</think>${finalAssistantContent}`
                   : finalAssistantContent;
                   
+                // Debug log to verify content before saving  
+                console.debug('Saving AI response:', contentToSave);
+                
+                // Save the message with complete content
                 saveMessageToBackend(state.activeChatId!, contentToSave, false);
               }
             }

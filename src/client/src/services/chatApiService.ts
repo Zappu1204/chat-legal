@@ -44,8 +44,17 @@ const chatApiService = {
    * Send a message to a chat
    */
   sendMessage: async (chatId: string, content: string): Promise<ChatMessageResponse> => {
+    // Validate that we're not sending a number ID instead of content
+    if (!isNaN(Number(content)) && content.length < 10) {
+      console.error('Attempted to send numeric ID as content:', content);
+      throw new Error('Invalid message content');
+    }
+    
+    // Make sure content is a string
+    const messageContent = String(content);
+    
     const response = await api.post<ChatMessageResponse>(`/api/chats/${chatId}/messages`, {
-      content
+      content: messageContent
     });
     return response.data;
   },
