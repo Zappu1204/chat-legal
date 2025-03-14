@@ -4,26 +4,39 @@ import { useChatScroll } from '../hooks/useChatScroll';
 import ChatMessage from '../components/chat/ChatMessage';
 import ChatInput from '../components/chat/ChatInput';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSave, faCircleNotch } from '@fortawesome/free-solid-svg-icons';
+import { faSave, faCircleNotch, faArrowDown } from '@fortawesome/free-solid-svg-icons';
 import ModelSelector from '../components/chat/ModelSelector';
-import { useState } from 'react';
+import { useState, useRef, MouseEvent } from 'react';
 
 const HomePage = () => {
   const { user } = useAuth();
   const { messages, isTyping, error, isSaving, activeChatId, chatTitle, sendMessage, dismissError } = useChat();
-  const { messagesEndRef, isNearBottom, scrollToBottom } = useChatScroll(messages, isTyping);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Use auto for instant scrolling - this prevents the visible "jumping" effect
+  const { messagesEndRef, isNearBottom, scrollToBottom } = useChatScroll(messages, isTyping, 'auto');
+  
   const [selectedModel, setSelectedModel] = useState('gemma3:1b'); // Default model
 
   const handleSendMessage = (message: string) => {
     sendMessage(message, selectedModel);
-    // Force scroll to bottom when sending a new message
-    setTimeout(scrollToBottom, 500);
+    // Force scroll to bottom when sending a new message, but use a very short delay
+    // to ensure the DOM has updated with the new message
+    requestAnimationFrame(() => {
+      scrollToBottom();
+    });
+  };
+  
+  // Create a wrapper function that handles MouseEvent for onClick
+  const handleScrollToBottom = (e: MouseEvent) => {
+    e.preventDefault();
+    scrollToBottom();
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-y-auto">
-      <div className="max-w-4xl w-full mx-auto flex-grow flex flex-col justify-end px-4">
-        {/* Chat title/status bar - only show when there's an active chat */}
+    <div className="flex flex-col h-screen overflow-hidden">
+      <div className="max-w-4xl w-full mx-auto flex-grow flex flex-col px-4 overflow-hidden">
+        {/* Chat title/status bar */}
         <div className="sticky top-0 bg-white z-10 p-2 border-b border-slate-100 flex justify-between items-center">
           <div className="select-models">
             <ModelSelector
@@ -50,42 +63,58 @@ const HomePage = () => {
           )}
         </div>
 
-        <div className="flex-grow">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-end h-full text-center">
-              <h2 className="text-2xl font-bold text-gray-700 mb-4">Chào bạn, Tớ là ViVu AI!</h2>
-              <p className="text-gray-600">
-                <span className="font-semibold">{user?.username}</span> ngoan xinh yêu ơi! Cứ hành tớ thoải mái nhé?
-              </p>
-              {!activeChatId && (
-                <p className="text-gray-500 mt-2 text-sm italic">
-                  (Hãy nhắn tin cho tớ để bắt đầu trò chuyện nào!)
+        {/* Make this div the scrollable container with fixed height */}
+        <div 
+          ref={chatContainerRef}
+          className="flex-grow overflow-y-auto overflow-x-hidden scroll-smooth"
+          style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E0 #F7FAFC' }}
+        >
+          <div className="min-h-full flex flex-col justify-end">
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-end h-full text-center p-4">
+                <h2 className="text-2xl font-bold text-gray-700 mb-4">Chào bạn, Tớ là ViVu AI!</h2>
+                <p className="text-gray-600">
+                  <span className="font-semibold">{user?.username}</span> ngoan xinh yêu ơi! Cứ hành tớ thoải mái nhé?
                 </p>
-              )}
-            </div>
-          ) : (
-            messages.map((message, index) => (
-              <ChatMessage
-                key={`${message.id}-${index}-${message.content.length}`}
-                message={message}
-                isLoading={isTyping && index === messages.length - 1}
-              />
-            ))
-          )}
-          <div ref={messagesEndRef} />
-
-          {!isNearBottom && isTyping && (
-            <button
-              onClick={scrollToBottom}
-              className="fixed bottom-24 right-8 bg-blue-500 text-white rounded-full p-2 shadow-lg hover:bg-blue-600 transition-all"
-              aria-label="Kéo xuống để xem tin nhắn mới nhé!"
-            >
-              ↓ New messages
-            </button>
-          )}
+                {!activeChatId && (
+                  <p className="text-gray-500 mt-2 text-sm italic">
+                    (Hãy nhắn tin cho tớ để bắt đầu trò chuyện nào!)
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col">
+                {messages.map((message, index) => (
+                  <ChatMessage
+                    key={`${message.id}-${index}`}
+                    message={message}
+                    isLoading={isTyping && index === messages.length - 1}
+                  />
+                ))}
+              </div>
+            )}
+            {/* This element is the scroll target - keep it minimal */}
+            <div ref={messagesEndRef} className='mb-4' />
+          </div>
         </div>
       </div>
-      <div className={`max-w-4xl w-full mx-auto flex-grow ${messages.length === 0 ? '' : 'flex flex-col justify-end sticky'} bottom-0 bg-white p-4`}>
+
+      {/* New messages indicator & scroll button with fixed onClick handler */}
+      {!isNearBottom && (
+        <div className="fixed bottom-24 right-8 z-10">
+          <button
+            onClick={handleScrollToBottom}
+            className="bg-blue-500 text-white rounded-full p-2 shadow-lg hover:bg-blue-600 transition-all flex items-center"
+            aria-label="Kéo xuống để xem tin nhắn mới nhé!"
+          >
+            <FontAwesomeIcon icon={faArrowDown} className="mr-2" />
+            <span>New messages</span>
+          </button>
+        </div>
+      )}
+
+      {/* Input area - fixed at bottom */}
+      <div className={`max-w-4xl w-full mx-auto sticky bottom-0 bg-white p-4 ${messages.length === 0 ? 'flex-grow' : ''}`}>
         {messages.length === 0 && (
           <div className="p-6 rounded-lg w-full text-center">
             <p className="text-gray-700 font-medium mb-4">Vài loại câu hỏi tớ có thể trả lời:</p>

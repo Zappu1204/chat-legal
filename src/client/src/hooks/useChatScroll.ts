@@ -1,60 +1,150 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { ChatMessage } from '../types/chat';
+
+// Type-safe debounce function without using any
+function debounce<T extends (...args: unknown[]) => void>(fn: T, delay: number): T {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return ((...args: Parameters<T>) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      fn(...args);
+      timer = null;
+    }, delay);
+  }) as T;
+}
 
 export function useChatScroll(
   messages: ChatMessage[],
   isTyping: boolean,
+  scrollBehavior: ScrollBehavior = 'smooth'
 ) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
   const [isNearBottom, setIsNearBottom] = useState(true);
+  // Track if we should lock to bottom (user hasn't scrolled up manually)
+  const [lockToBottom, setLockToBottom] = useState(true);
+  // Track last message count to detect new messages
+  const lastMessageCountRef = useRef<number>(0);
+  // Store previous scroll positions to detect direction
+  const lastScrollTopRef = useRef<number>(0);
+  // Track if user has manually scrolled up
+  const userScrolledUpRef = useRef<boolean>(false);
   
-  // Check if user is near bottom of the chat
-  const checkIfNearBottom = () => {
-    if (!messagesEndRef.current) return;
-    
-    const container = messagesEndRef.current.parentElement;
+  // Find the scroll container once when component mounts
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      // The scroll container is the first parent with overflow-y: auto or scroll
+      let element = messagesEndRef.current.parentElement;
+      while (element) {
+        const overflowY = window.getComputedStyle(element).overflowY;
+        if (overflowY === 'auto' || overflowY === 'scroll') {
+          scrollContainerRef.current = element;
+          break;
+        }
+        element = element.parentElement;
+      }
+
+      // If we couldn't find an appropriate container, use document.documentElement
+      if (!scrollContainerRef.current) {
+        scrollContainerRef.current = document.documentElement;
+      }
+    }
+  }, []);
+
+  // Optimized check if user is near bottom of the chat
+  const checkIfNearBottom = useCallback(() => {
+    const container = scrollContainerRef.current;
     if (!container) return;
     
     const { scrollTop, scrollHeight, clientHeight } = container;
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
     
     // Consider "near bottom" if within 100px of bottom
-    setIsNearBottom(distanceFromBottom < 100);
-  };
+    const newIsNearBottom = distanceFromBottom < 100;
+    setIsNearBottom(newIsNearBottom);
+    
+    // If user scrolled significantly upward, unlock from bottom
+    if (lastScrollTopRef.current > scrollTop && 
+        lastScrollTopRef.current - scrollTop > 50 &&
+        !newIsNearBottom) {
+      setLockToBottom(false);
+      userScrolledUpRef.current = true;
+    }
+    
+    // If user scrolled to bottom, re-enable lock
+    if (newIsNearBottom && !lockToBottom) {
+      setLockToBottom(true);
+      userScrolledUpRef.current = false;
+    }
+    
+    lastScrollTopRef.current = scrollTop;
+  }, [lockToBottom]);
 
-  // Set up scroll event listener to detect when user scrolls away from bottom
+  // Debounced version to avoid performance issues
+  const debouncedCheckIfNearBottom = useCallback(
+    () => debounce(checkIfNearBottom, 100)(),
+    [checkIfNearBottom]
+  );
+
+  // Set up scroll event listener
   useEffect(() => {
-    const container = messagesEndRef.current?.parentElement;
+    const container = scrollContainerRef.current;
     if (!container) return;
 
-    const handleScroll = () => checkIfNearBottom();
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+    container.addEventListener('scroll', debouncedCheckIfNearBottom);
+    return () => container.removeEventListener('scroll', debouncedCheckIfNearBottom);
+  }, [debouncedCheckIfNearBottom]);
 
-  // Scroll to bottom only when new messages are added or if user is near bottom
-  useEffect(() => {
-    if (isNearBottom) {
-      const timeoutId = setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-      return () => clearTimeout(timeoutId);
+  // Improved scroll to bottom function with better typing
+  const scrollToBottom = useCallback((options?: ScrollIntoViewOptions | undefined) => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: scrollBehavior,
+        block: 'end',
+        ...options
+      });
+      setLockToBottom(true);
+      userScrolledUpRef.current = false;
     }
-  }, [messages.length, isNearBottom]);
+  }, [scrollBehavior]);
 
-  // For typing streams, scroll less frequently to avoid jarring experience
+  // Handle auto-scrolling based on different conditions
   useEffect(() => {
-    if (isTyping && isNearBottom) {
+    // Detect new messages
+    const hasNewMessages = messages.length > lastMessageCountRef.current;
+    lastMessageCountRef.current = messages.length;
+    
+    // Different scroll strategies for different scenarios:
+    
+    // 1. For new messages when user is at bottom or hasn't scrolled up manually
+    if (hasNewMessages && (isNearBottom || lockToBottom)) {
+      // Small delay to ensure content has rendered
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
+    } 
+    // 2. For typing indicator when locked to bottom
+    else if (isTyping && lockToBottom) {
+      // Use a less frequent scroll for typing to avoid jumpiness
       const scrollInterval = setInterval(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 1000); // Less frequent for smoother experience
+        if (lockToBottom && !userScrolledUpRef.current) {
+          scrollToBottom({ behavior: 'auto' }); // use auto for smoother experience during typing
+        }
+      }, 500);
+      
       return () => clearInterval(scrollInterval);
     }
-  }, [isTyping, isNearBottom]);
+  }, [messages.length, isTyping, isNearBottom, lockToBottom, scrollToBottom]);
+
+  // Force scroll check when typing state changes
+  useEffect(() => {
+    checkIfNearBottom();
+  }, [isTyping, checkIfNearBottom]);
 
   return {
     messagesEndRef,
     isNearBottom,
-    scrollToBottom: () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    scrollToBottom,
+    scrollContainerRef
   };
 }
