@@ -63,3 +63,24 @@ export interface ChatMessageResponse {
   model?: string;
   createdAt: string;
 }
+
+export interface ChatContextType extends ChatState {
+  sendMessage: (content: string) => void;
+  clearMessages: () => void;
+  dismissError: () => void;
+  createNewChat: (createInDatabase?: boolean) => Promise<ChatResponse | null>;
+  loadChatHistory: () => Promise<void>;
+  selectChat: (chatId: string) => Promise<void>;
+  deleteChat: (chatId: string) => Promise<void>;
+}
+
+export interface ChatState {
+  messages: ChatMessage[];
+  isTyping: boolean;
+  error: string | null;
+  isSaving: boolean;
+  activeChatId: string | null;
+  chatTitle: string;
+  chatHistory: ChatResponse[];
+  isLoadingHistory: boolean;
+}

@@ -97,12 +97,9 @@ const Sidebar = () => {
         }
     };
 
-    const handleNewChat = async () => {
-        try {
-            await createNewChat();
-        } catch (error) {
-            console.error('Error creating new chat:', error);
-        }
+    const handleNewChat = () => {
+        // Pass false to prevent API call, just reset UI
+        createNewChat(false);
     };
 
     return (

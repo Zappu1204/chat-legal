@@ -1,26 +1,14 @@
 import { createContext, useContext, useReducer, ReactNode, useCallback, useRef, useEffect, useState, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { ChatMessage, ChatResponse, OllamaChatRequest } from '../types/chat';
+import { ChatMessage, ChatResponse, ChatState, OllamaChatRequest } from '../types/chat';
 import chatService from '../services/chatService';
 import chatApiService from '../services/chatApiService';
-
-// Define context types
-interface ChatState {
-  messages: ChatMessage[];
-  isTyping: boolean;
-  error: string | null;
-  isSaving: boolean;
-  activeChatId: string | null;
-  chatTitle: string;
-  chatHistory: ChatResponse[];
-  isLoadingHistory: boolean;
-}
 
 interface ChatContextType extends ChatState {
   sendMessage: (content: string) => void;
   clearMessages: () => void;
   dismissError: () => void;
-  createNewChat: () => Promise<ChatResponse | null>;
+  createNewChat: (createInDatabase?: boolean) => Promise<ChatResponse | null>;
   loadChatHistory: () => Promise<void>;
   selectChat: (chatId: string) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
@@ -128,30 +116,37 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
     }
   }, []);
 
-  // Create a new chat session
-  const createNewChat = useCallback(async () => {
+  // Create a new chat session - now with option to create locally only
+  const createNewChat = useCallback(async (createInDatabase: boolean = true) => {
     try {
       setIsInitializing(true);
       dispatch({ type: 'SET_ERROR', payload: null });
       
-      // Create a new chat on the server
-      const response = await chatApiService.createChat(modelId);
-      
-      // Set the active chat
-      dispatch({ type: 'SET_ACTIVE_CHAT', payload: { 
-        id: response.id, 
-        title: response.title 
-      }});
-      
-      // Clear any existing messages
-      dispatch({ type: 'CLEAR_MESSAGES' });
-      
-      // Refresh chat history after creating a new chat
-      setTimeout(() => {
-        loadChatHistory(); // Call loadChatHistory after a short delay
-      }, 100);
-      
-      return response;
+      if (createInDatabase) {
+        // Create a new chat on the server
+        const response = await chatApiService.createChat(modelId);
+        
+        // Set the active chat
+        dispatch({ type: 'SET_ACTIVE_CHAT', payload: { 
+          id: response.id, 
+          title: response.title 
+        }});
+        
+        // Refresh chat history after creating a new chat
+        setTimeout(() => {
+          loadChatHistory(); // Call loadChatHistory after a short delay
+        }, 100);
+        
+        return response;
+      } else {
+        // Just reset UI state without API call
+        dispatch({ type: 'CLEAR_MESSAGES' });
+        dispatch({ type: 'SET_ACTIVE_CHAT', payload: { 
+          id: null, 
+          title: 'New Chat' 
+        }});
+        return null;
+      }
     } catch (error) {
       console.error('Error creating chat:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create chat session';
@@ -303,7 +298,8 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
       let isNewChat = false;
       
       if (!currentChatId) {
-        const newChat = await createNewChat();
+        // Now actually create the chat in the database since user is sending a message
+        const newChat = await createNewChat(true); // Pass true to create in database
         if (!newChat) {
           dispatch({ type: 'SET_TYPING', payload: false });
           return;
