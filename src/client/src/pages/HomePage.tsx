@@ -14,26 +14,26 @@ const HomePage = () => {
   const handleSendMessage = (message: string) => {
     sendMessage(message);
     // Force scroll to bottom when sending a new message
-    setTimeout(scrollToBottom, 100);
+    setTimeout(scrollToBottom, 500);
   };
 
   return (
     <div className="flex flex-col h-screen overflow-y-auto">
-      <div className="max-w-4xl w-full mx-auto">
+      <div className="max-w-4xl w-full mx-auto flex-grow flex flex-col justify-end p-4">
         {/* Chat title/status bar - only show when there's an active chat */}
         {activeChatId && (
-          <div className="sticky top-0 bg-white z-10 p-2 border-b flex justify-between items-center">
-            <h2 className="font-medium text-gray-700 truncate">{chatTitle}</h2>
+          <div className="sticky top-0 bg-white z-10 p-2 border-b border-slate-100 flex justify-between items-center">
+            <h2 className="text-2xl font-semibol text-center text-gray-700 truncate">{chatTitle}</h2>
             {isSaving && (
               <div className="flex items-center text-sm text-blue-500">
                 <FontAwesomeIcon icon={faCircleNotch} spin className="mr-2" />
-                <span>Saving...</span>
+                <span>Tớ đang lưu nè...</span>
               </div>
             )}
             {!isSaving && activeChatId && (
               <div className="flex items-center text-sm text-green-500">
                 <FontAwesomeIcon icon={faSave} className="mr-2" />
-                <span>Saved</span>
+                <span>Đã lưu xong rồi á!</span>
               </div>
             )}
           </div>
@@ -67,14 +67,14 @@ const HomePage = () => {
             <button 
               onClick={scrollToBottom}
               className="fixed bottom-24 right-8 bg-blue-500 text-white rounded-full p-2 shadow-lg hover:bg-blue-600 transition-all"
-              aria-label="Scroll to bottom"
+              aria-label="Kéo xuống để xem tin nhắn mới nhé!"
             >
               ↓ New messages
             </button>
           )}
         </div>
       </div>
-      <div className={`max-w-4xl w-full mx-auto ${messages.length === 0 ? '' : 'sticky'} bottom-0 bg-white p-4`}>
+      <div className={`max-w-4xl w-full mx-auto flex-grow ${messages.length === 0 ? '' : 'flex flex-col justify-end sticky'} bottom-0 bg-white p-4`}>
         {messages.length === 0 && (
           <div className="p-6 rounded-lg w-full text-center">
             <p className="text-gray-700 font-medium mb-4">Vài loại câu hỏi tớ có thể trả lời:</p>
@@ -99,8 +99,7 @@ const HomePage = () => {
           isDisabled={isTyping || isSaving}
           placeholder={
             isTyping ? "Chờ tý! tớ đang trả lời mà..." : 
-            isSaving ? "Đang lưu..." :
-            "Gõ đê bạn ơi..."
+            isSaving ? "Đang lưu..." : "Gõ đê bạn ơi..."
           }
         />
       </div>

@@ -29,7 +29,7 @@ const LoginPage = () => {
     } catch (error) {
       console.error('Login error:', error);
       if (error instanceof Error) {
-        setApiError(error.message || 'Invalid username or password');
+        setApiError(error.message ?? 'Invalid username or password');
       } else {
         setApiError('An error occurred during login');
       }

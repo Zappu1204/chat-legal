@@ -11,7 +11,7 @@ const chatApiService = {
   createChat: async (model: string, title?: string, description?: string): Promise<ChatResponse> => {
     const response = await api.post<ChatResponse>('/api/chats', {
       model,
-      title: title || 'New Chat',
+      title: title ?? 'New Chat',
       description
     });
     return response.data;

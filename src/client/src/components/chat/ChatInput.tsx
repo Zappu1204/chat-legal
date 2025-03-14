@@ -53,7 +53,7 @@ const ChatInput = ({ onSubmit, isDisabled, placeholder = 'Gõ đê bạn ơi...'
                 <div className="form-actions flex justify-end items-center gap-2">
                     <button title='Gửi tin nhắn' type='button'
                         onClick={handleSubmit}
-                        disabled={isDisabled || !message.trim()}
+                        disabled={isDisabled ?? !message.trim()}
                         className="bg-blue-500 text-white rounded-full p-2 h-10 w-10 flex items-center justify-center disabled:bg-gray-300"
                     >
                         <FontAwesomeIcon icon={faPaperPlane} />

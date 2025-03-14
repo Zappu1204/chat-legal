@@ -28,7 +28,7 @@ const ChatHistoryItem = ({ chat, isActive, onSelect, onDelete }: ChatHistoryItem
             <div className="flex items-center flex-grow overflow-hidden">
                 <FontAwesomeIcon icon={faComment} className="mr-3" />
                 <div className="truncate">
-                    <div className="font-medium truncate">{chat.title || 'New Chat'}</div>
+                    <div className="font-medium truncate">{chat.title ?? 'New Chat'}</div>
                     <div className="text-xs opacity-70 truncate">{formattedDate}</div>
                 </div>
             </div>

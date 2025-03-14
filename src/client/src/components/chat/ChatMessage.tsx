@@ -13,7 +13,7 @@ interface ChatMessageProps {
 
 const ChatMessage = memo(({ message, isLoading = false }: ChatMessageProps) => {
   const [collapsed, setCollapsed] = useState(false);
-  const [elapsedTime, setElapsedTime] = useState<number>(message.thinkingTime || 0);
+  const [elapsedTime, setElapsedTime] = useState<number>(message.thinkingTime ?? 0);
   const isUser = message.role === 'user';
   const typingDots = useTypingEffect(isLoading && !isUser);
 
@@ -26,7 +26,7 @@ const ChatMessage = memo(({ message, isLoading = false }: ChatMessageProps) => {
       return;
     }
 
-    const startTime = message.thinkingStartTime || Date.now();
+    const startTime = message.thinkingStartTime ?? Date.now();
     const intervalId = setInterval(() => {
       setElapsedTime(Date.now() - startTime);
     }, 100);
@@ -60,7 +60,7 @@ const ChatMessage = memo(({ message, isLoading = false }: ChatMessageProps) => {
           <>
             <div className='flex items-center mb-4'>
               <div className="avatar p-2">
-                <img src={Logo} className="w-12 h-12" alt="Vite logo" />
+                <img src={Logo} className="w-14 h-14" alt="Vite logo" />
               </div>
               {shouldShowThinking && (
                 <div className="thinking">
@@ -80,14 +80,14 @@ const ChatMessage = memo(({ message, isLoading = false }: ChatMessageProps) => {
             </div>
             {hasThinking && !collapsed && (
               <div className="bg-blue-100 mb-4 text-sm italic border-l-2 border-gray-400 pl-2 py-1">
-                <ReactMarkdown>{message.think || ''}</ReactMarkdown>
+                <ReactMarkdown>{message.think ?? ''}</ReactMarkdown>
               </div>
             )}
           </>
         )}
 
         <article className="prose max-w-none">
-          <ReactMarkdown>{message.content || ''}</ReactMarkdown>
+          <ReactMarkdown>{message.content ?? ''}</ReactMarkdown>
           {isLoading && !isUser && !message.thinking && message.content === '' && (
             <span className="inline-block animate-pulse">Thinking{typingDots}</span>
           )}

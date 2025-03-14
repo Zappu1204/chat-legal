@@ -12,18 +12,18 @@ const Sidebar = () => {
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const profileDropdownRef = useRef<HTMLDivElement>(null);
     const profileButtonRef = useRef<HTMLDivElement>(null);
-    
+
     const { user, logout } = useAuth();
-    const { 
-        chatHistory, 
-        activeChatId, 
+    const {
+        chatHistory,
+        activeChatId,
         isLoadingHistory,
-        createNewChat, 
-        selectChat, 
+        createNewChat,
+        selectChat,
         deleteChat,
-        loadChatHistory 
+        loadChatHistory
     } = useChat();
-    
+
     const navigate = useNavigate();
 
     // Refresh chat history when sidebar mounts
@@ -93,7 +93,7 @@ const Sidebar = () => {
             await logout();
             navigate('/login');
         } catch (error) {
-            console.error('Logout error:', error);
+            console.error('Lỗi đăng xuất:', error);
         }
     };
 
@@ -107,7 +107,7 @@ const Sidebar = () => {
             <div className="top">
                 <div className={`flex items-center *:hover:cursor-pointer ${isCollapsed ? 'flex-col' : 'justify-between'}`}>
                     <div className="brand flex items-center flex-grow">
-                        <img src={Logo} alt='logo' className={isCollapsed ? 'w-14 h-14 p-2' : 'w-10 h-10 ml-3'} />
+                        <img src={Logo} alt='logo' className={isCollapsed ? 'w-14 h-14 p-1' : 'w-12 h-12 ml-3'} />
                         <span className={isCollapsed ? 'hidden' : 'text-2xl font-bold text-black ml-3'}>ViVu</span>
                     </div>
                     <button
@@ -120,53 +120,47 @@ const Sidebar = () => {
                         <FontAwesomeIcon icon={isCollapsed ? faAngleDoubleRight : faAngleDoubleLeft} />
                     </button>
                 </div>
-                <button 
+                <button
                     className='flex items-center h-14 p-4 hover:bg-blue-500 hover:text-white w-full hover:cursor-pointer transition-colors'
                     onClick={handleNewChat}
-                    title="New Chat"
+                    title="Chat mới nè!"
                 >
-                    <FontAwesomeIcon icon={faPlus} className="mr-2" />
-                    <span className={isCollapsed ? 'hidden' : ''}>New Chat</span>
+                    <FontAwesomeIcon icon={faPlus} className={isCollapsed ? 'w-6 h-6' : 'mr-2'} />
+                    <span className={isCollapsed ? 'hidden' : ''}>Chat mới nè</span>
                 </button>
             </div>
-            
+
             {/* Chat history list */}
-            <div className={`chat-list flex-grow overflow-y-auto p-2 ${isCollapsed ? 'hidden' : ''}`}>
-                <h3 className="text-xs uppercase font-bold text-gray-500 mb-2 px-2">Chat History</h3>
-                {isLoadingHistory ? (
-                    <div className="flex justify-center items-center p-4">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-500"></div>
-                    </div>
-                ) : chatHistory.length === 0 ? (
-                    <div className="text-center text-gray-500 p-4">
-                        <p className="text-sm">No chats yet</p>
-                        <p className="text-xs">Start a new conversation!</p>
-                    </div>
-                ) : (
-                    chatHistory.map(chat => (
-                        <ChatHistoryItem 
-                            key={chat.id}
-                            chat={chat}
-                            isActive={chat.id === activeChatId}
-                            onSelect={() => selectChat(chat.id)}
-                            onDelete={() => deleteChat(chat.id)}
-                        />
-                    ))
-                )}
+            <div className="flex-grow">
+                <div className={`chat-list overflow-y-auto p-2 ${isCollapsed ? 'hidden' : ''}`}>
+                    <h3 className="text-xs uppercase font-bold text-gray-500 mb-2 px-2">Lịch sử chém gió</h3>
+                    {isLoadingHistory ? (
+                        <div className="flex justify-center items-center p-4">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-500"></div>
+                        </div>
+                    ) : chatHistory.length === 0 ? (
+                        <div className="text-center text-gray-500 p-4">
+                            <p className="text-sm">No chats yet</p>
+                            <p className="text-xs">Start a new conversation!</p>
+                        </div>
+                    ) : (
+                        chatHistory.map(chat => (
+                            <ChatHistoryItem
+                                key={chat.id}
+                                chat={chat}
+                                isActive={chat.id === activeChatId}
+                                onSelect={() => selectChat(chat.id)}
+                                onDelete={() => deleteChat(chat.id)}
+                            />
+                        ))
+                    )}
+                </div>
             </div>
-            
+
             <div className={`flex justify-between items-center relative border-t border-gray-300 ${isCollapsed ? 'flex-col' : 'w-full px-3 py-2'}`}>
-                <div
-                    ref={profileButtonRef}
-                    aria-hidden="true"
-                    className={`block hover:cursor-pointer w-14 h-14 ${isCollapsed ? 'p-2' : ''}`}
-                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                >
-                    <img
-                        src={Logo}
-                        alt='profile'
-                        className='border border-blue-500 rounded-full hover:border-blue-700 transition-all'
-                    />
+                <div ref={profileButtonRef} aria-hidden="true" className={`block hover:cursor-pointer w-12 h-12 ${isCollapsed ? 'p-1' : ''} transition-all`}
+                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
+                    <img src={Logo} alt='profile' className='border border-blue-500 rounded-full hover:border-blue-700 transition-all'/>
                 </div>
                 {!isCollapsed && (
                     <div className="user-info ml-2 flex-grow">
@@ -178,18 +172,13 @@ const Sidebar = () => {
                     ref={profileDropdownRef}
                     className={`absolute bottom-full ${isCollapsed ? 'left-4' : 'left-3'} w-36 bg-white shadow-lg rounded-md z-10 *:hover:cursor-pointer ${isProfileDropdownOpen ? 'block' : 'hidden'}`}
                 >
-                    <Link
-                        to='/profile'
+                    <Link to='/profile'
                         className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white hover:rounded-t-md transition-colors'
-                        onClick={() => setIsProfileDropdownOpen(false)}
-                    >
+                        onClick={() => setIsProfileDropdownOpen(false)}>
                         {user?.username ?? 'Profile'}
                     </Link>
-                    <button
-                        type="button"
-                        onClick={handleLogout}
-                        className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white hover:rounded-b-md text-left transition-colors'
-                    >
+                    <button type="button" onClick={handleLogout}
+                        className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white hover:rounded-b-md text-left transition-colors'>
                         <FontAwesomeIcon icon={faSignOut} className='mr-3' />
                         Logout
                     </button>

@@ -13,7 +13,7 @@ export function useThinkingTimer(
   startTime?: number,
   finalTime?: number
 ): number {
-  const [elapsedTime, setElapsedTime] = useState<number>(finalTime || 0);
+  const [elapsedTime, setElapsedTime] = useState<number>(finalTime ?? 0);
   
   useEffect(() => {
     // If thinking has completed, use the final time
@@ -26,7 +26,7 @@ export function useThinkingTimer(
     if (!isThinking) return;
     
     // Get start time, either from props or now
-    const thinkingStartTime = startTime || Date.now();
+    const thinkingStartTime = startTime ?? Date.now();
     
     // Update elapsed time every 100ms
     const intervalId = setInterval(() => {

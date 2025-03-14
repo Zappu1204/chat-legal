@@ -379,11 +379,11 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
             }
 
             // Update assistant message with new content
-            finalAssistantContent = chunk.message?.content || '';
+            finalAssistantContent = chunk.message?.content ?? '';
             finalAssistantThinking = chunk.think ?? '';
             
             updateMessage(assistantMessageId, {
-              content: chunk.message?.content || '',
+              content: chunk.message?.content ?? '',
               thinking: !!chunk.thinking,
               think: chunk.think ?? '',
               thinkingStartTime: chunk.thinkingStartTime,
@@ -426,7 +426,7 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
           (error) => {
             console.error('Streaming error:', error);
             dispatch({ type: 'SET_TYPING', payload: false });
-            dispatch({ type: 'SET_ERROR', payload: error.message || 'An error occurred' });
+            dispatch({ type: 'SET_ERROR', payload: error.message ?? 'An error occurred' });
             updateMessage(assistantMessageId, {
               content: 'Sorry, I encountered an error while responding. Please try again.',
               thinking: false

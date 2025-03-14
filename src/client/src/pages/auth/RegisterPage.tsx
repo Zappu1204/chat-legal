@@ -52,12 +52,12 @@ const RegisterPage = () => {
           navigate('/login');
         }, 3000);
       } else {
-        setApiError(response.message || 'Registration failed');
+        setApiError(response.message ?? 'Registration failed');
       }
     } catch (error) {
       console.error('Registration error:', error);
       if (error instanceof Error) {
-        setApiError(error.message || 'Registration failed');
+        setApiError(error.message ?? 'Registration failed');
       } else {
         setApiError('An unexpected error occurred during registration');
       }
