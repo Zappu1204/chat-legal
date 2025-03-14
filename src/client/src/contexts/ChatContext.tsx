@@ -1,19 +1,24 @@
-import { createContext, useContext, useReducer, ReactNode, useCallback, useRef, useEffect } from 'react';
+import { createContext, useContext, useReducer, ReactNode, useCallback, useRef, useEffect, useState, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { ChatMessage, OllamaChatRequest } from '../types/chat';
+import { ChatMessage, ChatResponse, OllamaChatRequest } from '../types/chat';
 import chatService from '../services/chatService';
+import chatApiService from '../services/chatApiService';
 
 // Define context types
 interface ChatState {
   messages: ChatMessage[];
   isTyping: boolean;
   error: string | null;
+  isSaving: boolean;
+  activeChatId: string | null;
+  chatTitle: string;
 }
 
 interface ChatContextType extends ChatState {
   sendMessage: (content: string) => void;
   clearMessages: () => void;
   dismissError: () => void;
+  createNewChat: () => Promise<ChatResponse | null>;
 }
 
 // Create context
@@ -26,7 +31,9 @@ type ChatAction =
   | { type: 'UPDATE_MESSAGE'; payload: { id: string; updates: Partial<ChatMessage> } }
   | { type: 'SET_TYPING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'CLEAR_MESSAGES' };
+  | { type: 'CLEAR_MESSAGES' }
+  | { type: 'SET_SAVING'; payload: boolean }
+  | { type: 'SET_ACTIVE_CHAT'; payload: { id: string | null, title: string } };
 
 // Reducer function
 const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
@@ -48,19 +55,31 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
       return { ...state, error: action.payload };
     case 'CLEAR_MESSAGES':
       return { ...state, messages: [] };
+    case 'SET_SAVING':
+      return { ...state, isSaving: action.payload };
+    case 'SET_ACTIVE_CHAT':
+      return { 
+        ...state, 
+        activeChatId: action.payload.id,
+        chatTitle: action.payload.title 
+      };
     default:
       return state;
   }
 };
 
 // Provider component
-export const ChatProvider = ({ children, modelId = 'deepseek-r1:latest' }: { children: ReactNode; modelId?: string }) => {
+export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: ReactNode; modelId?: string }) => {
   const abortControllerRef = useRef<(() => void) | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
   
   const initialState: ChatState = {
     messages: [],
     isTyping: false,
     error: null,
+    isSaving: false,
+    activeChatId: null,
+    chatTitle: 'New Chat',
   };
 
   const [state, dispatch] = useReducer(chatReducer, initialState);
@@ -74,10 +93,86 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:latest' }: { chi
     };
   }, []);
 
+  // Create a new chat session
+  const createNewChat = useCallback(async () => {
+    try {
+      setIsInitializing(true);
+      dispatch({ type: 'SET_ERROR', payload: null });
+      
+      // Create a new chat on the server
+      const response = await chatApiService.createChat(modelId);
+      
+      // Set the active chat
+      dispatch({ type: 'SET_ACTIVE_CHAT', payload: { 
+        id: response.id, 
+        title: response.title 
+      }});
+      
+      // Clear any existing messages
+      dispatch({ type: 'CLEAR_MESSAGES' });
+      
+      return response;
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create chat session';
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+      return null;
+    } finally {
+      setIsInitializing(false);
+    }
+  }, [modelId]);
+
+  // Initialize chat if needed
+  useEffect(() => {
+    if (!state.activeChatId && !isInitializing) {
+      createNewChat();
+    }
+  }, [state.activeChatId, isInitializing, createNewChat]);
+
   // Update messages
   const updateMessage = useCallback((messageId: string, updates: Partial<ChatMessage>) => {
     dispatch({ type: 'UPDATE_MESSAGE', payload: { id: messageId, updates } });
   }, []);
+
+  // Save message to backend
+  const saveMessageToBackend = useCallback(async (
+    chatId: string, 
+    content: string,
+    isUserMessage: boolean
+  ) => {
+    if (!chatId) return null;
+    
+    try {
+      dispatch({ type: 'SET_SAVING', payload: true });
+      const response = await chatApiService.sendMessage(chatId, content);
+      
+      // If this was the first user message, the title might have been updated
+      if (isUserMessage && state.messages.filter(m => m.role === 'user').length === 0) {
+        try {
+          const updatedChat = await chatApiService.getChat(chatId);
+          if (updatedChat.title !== state.chatTitle) {
+            dispatch({ 
+              type: 'SET_ACTIVE_CHAT', 
+              payload: { id: chatId, title: updatedChat.title }
+            });
+          }
+        } catch (e) {
+          console.error('Error fetching updated chat title:', e);
+        }
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Error saving message:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to save message to the server';
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+      return null;
+    } finally {
+      dispatch({ type: 'SET_SAVING', payload: false });
+    }
+  }, [state.messages, state.chatTitle]);
 
   // Send a message
   const sendMessage = useCallback(
@@ -97,9 +192,13 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:latest' }: { chi
         abortControllerRef.current = null;
       }
 
+      // Create unique IDs for both messages
+      const userMessageId = uuidv4();
+      const assistantMessageId = uuidv4();
+
       // Create and add user message
       const userMessage: ChatMessage = {
-        id: uuidv4(),
+        id: userMessageId,
         role: 'user',
         content,
         timestamp: new Date(),
@@ -109,8 +208,16 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:latest' }: { chi
 
       dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
 
+      // Make sure we have an active chat
+      if (!state.activeChatId) {
+        const newChat = await createNewChat();
+        if (!newChat) {
+          dispatch({ type: 'SET_TYPING', payload: false });
+          return;
+        }
+      }
+
       // Add placeholder for assistant's response
-      const assistantMessageId = uuidv4();
       const assistantMessage: ChatMessage = {
         id: assistantMessageId,
         role: 'assistant',
@@ -122,6 +229,9 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:latest' }: { chi
 
       dispatch({ type: 'ADD_MESSAGE', payload: assistantMessage });
 
+      // Save the user message to the backend
+      await saveMessageToBackend(state.activeChatId!, content, true);
+
       // Prepare API request with conversation history
       const messagesToSend = [
         ...state.messages.map(msg => ({
@@ -132,7 +242,7 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:latest' }: { chi
       ];
 
       try {
-        // Send streaming request
+        // Send streaming request to Ollama
         const request: OllamaChatRequest = {
           model: modelId,
           messages: messagesToSend,
@@ -142,6 +252,9 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:latest' }: { chi
             repeat_penalty: 1.2,
           }
         };
+
+        let finalAssistantContent = '';
+        let finalAssistantThinking = '';
 
         abortControllerRef.current = chatService.streamCompletion(
           request,
@@ -156,7 +269,10 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:latest' }: { chi
               return;
             }
 
-            // Update assistant message with new content, ensuring think and content are separate
+            // Update assistant message with new content
+            finalAssistantContent = chunk.message?.content || '';
+            finalAssistantThinking = chunk.think || '';
+            
             updateMessage(assistantMessageId, {
               content: chunk.message?.content || '',
               thinking: !!chunk.thinking,
@@ -174,6 +290,16 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:latest' }: { chi
                 });
               }
               dispatch({ type: 'SET_TYPING', payload: false });
+              
+              // Save the assistant response to the backend
+              if (finalAssistantContent) {
+                // If thinking was included, format it properly for saving
+                const contentToSave = finalAssistantThinking 
+                  ? `<think>${finalAssistantThinking}</think>${finalAssistantContent}`
+                  : finalAssistantContent;
+                  
+                saveMessageToBackend(state.activeChatId!, contentToSave, false);
+              }
             }
           },
           (error) => {
@@ -197,12 +323,13 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:latest' }: { chi
         });
       }
     },
-    [state.messages, state.isTyping, updateMessage, modelId]
+    [state.messages, state.isTyping, state.activeChatId, updateMessage, modelId, createNewChat, saveMessageToBackend]
   );
 
   // Clear all messages
   const clearMessages = useCallback(() => {
     dispatch({ type: 'CLEAR_MESSAGES' });
+    dispatch({ type: 'SET_ACTIVE_CHAT', payload: { id: null, title: 'New Chat' } });
   }, []);
 
   // Dismiss error
@@ -210,14 +337,29 @@ export const ChatProvider = ({ children, modelId = 'deepseek-r1:latest' }: { chi
     dispatch({ type: 'SET_ERROR', payload: null });
   }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     messages: state.messages,
     isTyping: state.isTyping,
     error: state.error,
+    isSaving: state.isSaving,
+    activeChatId: state.activeChatId,
+    chatTitle: state.chatTitle,
     sendMessage,
     clearMessages,
-    dismissError
-  };
+    dismissError,
+    createNewChat
+  }), [
+    state.messages,
+    state.isTyping,
+    state.error,
+    state.isSaving,
+    state.activeChatId,
+    state.chatTitle,
+    sendMessage,
+    clearMessages,
+    dismissError,
+    createNewChat
+  ]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 };

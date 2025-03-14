@@ -43,3 +43,23 @@ export enum MessageRole {
   Assistant = "assistant",
   Tool = "tool",
 }
+
+// Backend API response types
+export interface ChatResponse {
+  id: string;
+  title: string;
+  description?: string;
+  model: string;
+  messages: ChatMessageResponse[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatMessageResponse {
+  id: string;
+  role: string;
+  content: string;
+  tokens?: number;
+  model?: string;
+  createdAt: string;
+}
