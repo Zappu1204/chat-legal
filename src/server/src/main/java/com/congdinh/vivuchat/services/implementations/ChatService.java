@@ -119,67 +119,56 @@ public class ChatService implements IChatService {
             throw new IllegalArgumentException("Message content cannot be empty");
         }
         
-        // Validate model exists in Ollama before proceeding
-        boolean modelExists = ollamaModelService.getModelDetails(chat.getModel()) != null;
-        if (!modelExists) {
-            throw new IllegalArgumentException("Model no longer available: " + chat.getModel());
+        // Improved logic for determining message role
+        MessageRole messageRole;
+        
+        // Check if the content includes thinking tags (which would indicate it's from the AI assistant)
+        if (request.getContent().contains("<think>") || request.getContent().contains("</think>")) {
+            messageRole = MessageRole.ASSISTANT;
+            log.debug("Detected as assistant message (contains thinking tags)");
+        } else {
+            // Look at the most recent message in the chat
+            List<Message> recentMessages = messageRepository.findByChatOrderByCreatedAtDesc(chat, Pageable.ofSize(1));
+            
+            // If the last message was from a user, this is likely the assistant's response
+            // If the last message was from the assistant, this is likely a user's message
+            if (!recentMessages.isEmpty() && recentMessages.get(0).getRole() == MessageRole.USER) {
+                messageRole = MessageRole.ASSISTANT;
+                log.debug("Detected as assistant message (follows user message)");
+            } else {
+                messageRole = MessageRole.USER;
+                log.debug("Detected as user message");
+            }
         }
-                
-        // Save user message
-        Message userMessage = Message.builder()
-                .role(MessageRole.USER)
+        
+        // Save the message with the determined role
+        Message message = Message.builder()
+                .role(messageRole)
                 .content(request.getContent())
                 .chat(chat)
                 .model(chat.getModel())
                 .build();
                 
-        messageRepository.save(userMessage);
+        message = messageRepository.save(message);
+        log.debug("Saved message to database with role: {}", message.getRole());
         
-        // Count existing messages
-        List<Message> chatHistory = messageRepository.findByChatOrderByCreatedAtAsc(chat);
-        
-        // Update chat title if this is the first user message
-        if (chat.getTitle().equals("New Chat") || chatHistory.size() <= 1) {
-            // Generate a title based on the first user message
-            String title = request.getContent();
-            if (title.length() > 30) {
-                title = title.substring(0, 27) + "...";
+        // If this is a user message, check if we should update the chat title
+        if (message.getRole() == MessageRole.USER) {
+            List<Message> userMessages = messageRepository.findByChatAndRole(chat, MessageRole.USER);
+            
+            // If this is the first user message, use it to set the chat title
+            if (userMessages.size() == 1 || chat.getTitle().equals("New Chat")) {
+                String title = request.getContent();
+                if (title.length() > 30) {
+                    title = title.substring(0, 27) + "...";
+                }
+                chat.setTitle(title);
+                chatRepository.save(chat);
+                log.info("Updated chat title to: {}", title);
             }
-            chat.setTitle(title);
-            chatRepository.save(chat);
-            log.info("Updated chat title to: {}", title);
         }
         
-        // Format messages for Ollama API - use only up to last 20 messages
-        int maxHistoryMessages = 20;
-        if (chatHistory.size() > maxHistoryMessages) {
-            chatHistory = chatHistory.subList(chatHistory.size() - maxHistoryMessages, chatHistory.size());
-        }
-        
-        List<Map<String, String>> messages = chatHistory.stream()
-                .map(msg -> {
-                    Map<String, String> msgMap = new HashMap<>();
-                    msgMap.put("role", msg.getRole().name().toLowerCase());
-                    msgMap.put("content", msg.getContent());
-                    return msgMap;
-                })
-                .toList();
-                
-        // Get response from Ollama
-        OllamaCompletionResponse aiResponse = ollamaService.generateCompletion(chat.getModel(), messages);
-        
-        // Save AI response
-        Message assistantMessage = Message.builder()
-                .role(MessageRole.ASSISTANT)
-                .content(aiResponse.getMessage().getContent())
-                .chat(chat)
-                .model(chat.getModel())
-                .build();
-                
-        assistantMessage = messageRepository.save(assistantMessage);
-        
-        // Return the AI response
-        return mapToMessageResponse(assistantMessage);
+        return mapToMessageResponse(message);
     }
 
     @Override

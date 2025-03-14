@@ -122,13 +122,6 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
     }
   }, [modelId]);
 
-  // Initialize chat if needed
-  useEffect(() => {
-    if (!state.activeChatId && !isInitializing) {
-      createNewChat();
-    }
-  }, [state.activeChatId, isInitializing, createNewChat]);
-
   // Update messages
   const updateMessage = useCallback((messageId: string, updates: Partial<ChatMessage>) => {
     dispatch({ type: 'UPDATE_MESSAGE', payload: { id: messageId, updates } });
@@ -216,7 +209,7 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
       const userMessageId = uuidv4();
       const assistantMessageId = uuidv4();
 
-      // Create and add user message
+      // Create user message
       const userMessage: ChatMessage = {
         id: userMessageId,
         role: 'user',
@@ -226,21 +219,26 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
         think: ''
       };
 
-      dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
-
-      // Make sure we have an active chat
-      if (!state.activeChatId) {
+      // Only create a new chat if we don't have an active chat
+      let currentChatId = state.activeChatId;
+      if (!currentChatId) {
         const newChat = await createNewChat();
         if (!newChat) {
           dispatch({ type: 'SET_TYPING', payload: false });
           return;
         }
+        currentChatId = newChat.id;
       }
+      
+      // Add the user message to the UI
+      dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
 
-      // Save the user message to the backend immediately
-      // This ensures the first message is used for chat title
-      if (state.activeChatId) {
-        await saveMessageToBackend(state.activeChatId, content, true);
+      try {
+        // Save the user message to the backend
+        await saveMessageToBackend(currentChatId, content, true);
+      } catch (error) {
+        console.error('Error saving user message:', error);
+        // Continue with the conversation even if saving fails
       }
 
       // Add placeholder for assistant's response
@@ -278,6 +276,7 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
 
         let finalAssistantContent = '';
         let finalAssistantThinking = '';
+        let savedAssistantResponse = false; // Flag to track if response has been saved
 
         abortControllerRef.current = chatService.streamCompletion(
           request,
@@ -294,17 +293,17 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
 
             // Update assistant message with new content
             finalAssistantContent = chunk.message?.content || '';
-            finalAssistantThinking = chunk.think || '';
+            finalAssistantThinking = chunk.think ?? '';
             
             updateMessage(assistantMessageId, {
               content: chunk.message?.content || '',
               thinking: !!chunk.thinking,
-              think: chunk.think || '',
+              think: chunk.think ?? '',
               thinkingStartTime: chunk.thinkingStartTime,
               thinkingTime: chunk.thinkingTime
             });
 
-            if (chunk.done) {
+            if (chunk.done && !savedAssistantResponse) {
               // Ensure we preserve the thinking time in the final message
               if (chunk.think && chunk.thinkingTime) {
                 updateMessage(assistantMessageId, {
@@ -314,19 +313,26 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
               }
               dispatch({ type: 'SET_TYPING', payload: false });
               
-              // Save the assistant response to the backend
-              if (finalAssistantContent) {
+              // Save the assistant response to the backend ONLY if not already saved
+              savedAssistantResponse = true; // Mark as saved to prevent duplicate calls
+              
+              if (finalAssistantContent && currentChatId) {
                 // If thinking was included, format it properly for saving
-                // Make sure we're sending the actual content, not references
                 const contentToSave = finalAssistantThinking 
                   ? `<think>${finalAssistantThinking}</think>${finalAssistantContent}`
                   : finalAssistantContent;
-                  
-                // Debug log to verify content before saving  
-                console.debug('Saving AI response:', contentToSave);
                 
-                // Save the message with complete content
-                saveMessageToBackend(state.activeChatId!, contentToSave, false);
+                try {
+                  // Create a local content variable for this specific save operation
+                  const assistantContent = String(contentToSave);
+                  console.debug('Saving AI response (once):', assistantContent.substring(0, 50) + (assistantContent.length > 50 ? '...' : ''));
+                  
+                  // Save the message with complete content
+                  saveMessageToBackend(currentChatId, assistantContent, false)
+                    .catch(err => console.error('Error saving AI response:', err));
+                } catch (err) {
+                  console.error('Error preparing AI response for saving:', err);
+                }
               }
             }
           },

@@ -20,7 +20,7 @@ const HomePage = () => {
   return (
     <div className="flex flex-col h-screen overflow-y-auto">
       <div className="max-w-4xl w-full mx-auto">
-        {/* Chat title/status bar */}
+        {/* Chat title/status bar - only show when there's an active chat */}
         {activeChatId && (
           <div className="sticky top-0 bg-white z-10 p-2 border-b flex justify-between items-center">
             <h2 className="font-medium text-gray-700 truncate">{chatTitle}</h2>
@@ -46,6 +46,11 @@ const HomePage = () => {
               <p className="text-gray-600">
                 {user?.username} ngoan xinh yêu ơi! Cứ hành tớ thoải mái nhé?
               </p>
+              {!activeChatId && (
+                <p className="text-gray-500 mt-2 text-sm italic">
+                  (Hãy nhắn tin cho tớ để bắt đầu trò chuyện nhé!)
+                </p>
+              )}
             </div>
           ) : (
             messages.map((message, index) => (

@@ -2,6 +2,7 @@ package com.congdinh.vivuchat.repositories;
 
 import com.congdinh.vivuchat.entities.Chat;
 import com.congdinh.vivuchat.entities.Message;
+import com.congdinh.vivuchat.entities.Message.MessageRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +14,9 @@ import java.util.UUID;
 @Repository
 public interface IMessageRepository extends JpaRepository<Message, UUID> {
     List<Message> findByChatOrderByCreatedAtAsc(Chat chat);
+    List<Message> findByChatOrderByCreatedAtDesc(Chat chat, Pageable pageable);
     Page<Message> findByChat(Chat chat, Pageable pageable);
     long countByChat(Chat chat);
+    
+    List<Message> findByChatAndRole(Chat chat, MessageRole role);
 }

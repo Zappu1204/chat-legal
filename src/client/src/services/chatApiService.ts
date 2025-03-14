@@ -44,14 +44,29 @@ const chatApiService = {
    * Send a message to a chat
    */
   sendMessage: async (chatId: string, content: string): Promise<ChatMessageResponse> => {
-    // Validate that we're not sending a number ID instead of content
-    if (!isNaN(Number(content)) && content.length < 10) {
-      console.error('Attempted to send numeric ID as content:', content);
-      throw new Error('Invalid message content');
+    if (!chatId) {
+      throw new Error('Chat ID is required');
+    }
+    
+    if (!content) {
+      throw new Error('Message content is required');
     }
     
     // Make sure content is a string
     const messageContent = String(content);
+    
+    // Check for very suspicious patterns:
+    // 1. If it looks like a UUID with dashes (common ID format)
+    // 2. Or if it's exactly matching the chatId parameter (which would be a serious error)
+    if (
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageContent) ||
+      messageContent === chatId
+    ) {
+      console.error('[CRITICAL] Attempted to send an ID as message content:', messageContent);
+      throw new Error('Invalid message content that appears to be an ID');
+    }
+    
+    console.debug(`Sending message to chat ${chatId}:`, messageContent.substring(0, 50) + (messageContent.length > 50 ? '...' : ''));
     
     const response = await api.post<ChatMessageResponse>(`/api/chats/${chatId}/messages`, {
       content: messageContent
