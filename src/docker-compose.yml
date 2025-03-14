@@ -1,0 +1,78 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:latest
+    container_name: vivuchat-postgres
+    environment:
+      POSTGRES_DB: vivuchat
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vivuchat-network
+
+  # Ollama
+  ollama:
+    image: ollama/ollama:latest
+    container_name: vivuchat-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - vivuchat-network
+
+  # Spring Boot Backend
+  server:
+    build:
+      context: .
+      dockerfile: deployment/Dockerfile.server
+    container_name: vivuchat-server
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/vivuchat
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - OLLAMA_API_BASE_URL=http://ollama:11434
+      - APP_OLLAMA_APIURL=http://ollama:11434/api
+      - SPRING_PROFILES_ACTIVE=docker
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - vivuchat-network
+
+  # ReactJS Frontend
+  client:
+    build:
+      context: .
+      dockerfile: deployment/Dockerfile.client
+      args:
+        - VITE_API_BASE_URL=/api
+    container_name: vivuchat-client
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - vivuchat-network
+
+networks:
+  vivuchat-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  ollama_data:

@@ -1,6 +1,5 @@
 package com.congdinh.vivuchat.services.implementations;
 
-import com.congdinh.vivuchat.dtos.ollama.OllamaCompletionResponse;
 import com.congdinh.vivuchat.dtos.requests.ChatRequest;
 import com.congdinh.vivuchat.dtos.requests.MessageRequest;
 import com.congdinh.vivuchat.dtos.responses.ChatResponse;
@@ -14,7 +13,6 @@ import com.congdinh.vivuchat.repositories.IMessageRepository;
 import com.congdinh.vivuchat.repositories.IUserRepository;
 import com.congdinh.vivuchat.services.interfaces.IChatService;
 import com.congdinh.vivuchat.services.interfaces.IOllamaModelService;
-import com.congdinh.vivuchat.services.interfaces.IOllamaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,7 +31,6 @@ public class ChatService implements IChatService {
     private final IChatRepository chatRepository;
     private final IMessageRepository messageRepository;
     private final IUserRepository userRepository;
-    private final IOllamaService ollamaService;
     private final IOllamaModelService ollamaModelService;
 
     @Override

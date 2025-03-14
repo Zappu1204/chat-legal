@@ -254,7 +254,7 @@ public class OllamaModelController {
                         
                         return modelMap;
                     })
-                    .collect(Collectors.toList());
+                    .toList();
                     
             Map<String, Object> response = new HashMap<>();
             response.put("models", formattedModels);

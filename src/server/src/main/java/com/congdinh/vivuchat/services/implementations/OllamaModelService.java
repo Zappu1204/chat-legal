@@ -6,7 +6,6 @@ import com.congdinh.vivuchat.dtos.ollama.OllamaModelResponse;
 import com.congdinh.vivuchat.services.interfaces.IOllamaModelService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -29,12 +28,12 @@ public class OllamaModelService implements IOllamaModelService {
     public List<OllamaModelResponse> listLocalModels() {
         try {
             OllamaApiResponse response = ollamaWebClient.get()
-                    .uri("/tags")
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .bodyToMono(OllamaApiResponse.class)
-                    .block(Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS));
-
+            .uri("/tags")
+            .accept(MediaType.APPLICATION_JSON)
+            .retrieve()
+            .bodyToMono(OllamaApiResponse.class)
+            .block(Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS));
+            
             if (response != null && response.getModels() != null) {
                 return response.getModels();
             }
