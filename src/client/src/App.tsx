@@ -21,14 +21,14 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
           </Route>
           
-          {/* Protected routes with ChatProvider for chat related pages */}
+          {/* Protected routes - Wrap the entire MainLayout with ChatProvider */}
           <Route element={<ProtectedRoute />}>
-            <Route element={<MainLayout />}>
-              <Route path="/" element={
-                <ChatProvider>
-                  <HomePage />
-                </ChatProvider>
-              } />
+            <Route element={
+              <ChatProvider>
+                <MainLayout />
+              </ChatProvider>
+            }>
+              <Route path="/" element={<HomePage />} />
               {/* Add more routes here */}
             </Route>
           </Route>

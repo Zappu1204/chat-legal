@@ -12,6 +12,8 @@ interface ChatState {
   isSaving: boolean;
   activeChatId: string | null;
   chatTitle: string;
+  chatHistory: ChatResponse[];
+  isLoadingHistory: boolean;
 }
 
 interface ChatContextType extends ChatState {
@@ -19,6 +21,9 @@ interface ChatContextType extends ChatState {
   clearMessages: () => void;
   dismissError: () => void;
   createNewChat: () => Promise<ChatResponse | null>;
+  loadChatHistory: () => Promise<void>;
+  selectChat: (chatId: string) => Promise<void>;
+  deleteChat: (chatId: string) => Promise<void>;
 }
 
 // Create context
@@ -33,7 +38,10 @@ type ChatAction =
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'CLEAR_MESSAGES' }
   | { type: 'SET_SAVING'; payload: boolean }
-  | { type: 'SET_ACTIVE_CHAT'; payload: { id: string | null, title: string } };
+  | { type: 'SET_ACTIVE_CHAT'; payload: { id: string | null, title: string } }
+  | { type: 'SET_CHAT_HISTORY'; payload: ChatResponse[] }
+  | { type: 'SET_LOADING_HISTORY'; payload: boolean }
+  | { type: 'REMOVE_CHAT_FROM_HISTORY'; payload: string };
 
 // Reducer function
 const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
@@ -63,6 +71,15 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
         activeChatId: action.payload.id,
         chatTitle: action.payload.title 
       };
+    case 'SET_CHAT_HISTORY':
+      return { ...state, chatHistory: action.payload };
+    case 'SET_LOADING_HISTORY':
+      return { ...state, isLoadingHistory: action.payload };
+    case 'REMOVE_CHAT_FROM_HISTORY':
+      return { 
+        ...state, 
+        chatHistory: state.chatHistory.filter(chat => chat.id !== action.payload) 
+      };
     default:
       return state;
   }
@@ -80,6 +97,8 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
     isSaving: false,
     activeChatId: null,
     chatTitle: 'New Chat',
+    chatHistory: [],
+    isLoadingHistory: false,
   };
 
   const [state, dispatch] = useReducer(chatReducer, initialState);
@@ -91,6 +110,11 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
         abortControllerRef.current();
       }
     };
+  }, []);
+
+  // Load chat history on component mount
+  useEffect(() => {
+    loadChatHistory();
   }, []);
 
   // Create a new chat session
@@ -121,6 +145,61 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
       setIsInitializing(false);
     }
   }, [modelId]);
+
+  // Load user's chat history
+  const loadChatHistory = useCallback(async () => {
+    dispatch({ type: 'SET_LOADING_HISTORY', payload: true });
+    
+    try {
+      const response = await chatApiService.getUserChats();
+      dispatch({ type: 'SET_CHAT_HISTORY', payload: response.content });
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load chat history';
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+    } finally {
+      dispatch({ type: 'SET_LOADING_HISTORY', payload: false });
+    }
+  }, []);
+
+  // Select and load a specific chat
+  const selectChat = useCallback(async (chatId: string) => {
+    if (chatId === state.activeChatId) return;
+    
+    // Clear existing messages while loading
+    dispatch({ type: 'CLEAR_MESSAGES' });
+    
+    try {
+      dispatch({ type: 'SET_LOADING_HISTORY', payload: true });
+      const chat = await chatApiService.getChat(chatId);
+      
+      // Set active chat details
+      dispatch({ 
+        type: 'SET_ACTIVE_CHAT', 
+        payload: { id: chat.id, title: chat.title } 
+      });
+      
+      // Convert messages from API format to client format
+      const formattedMessages = chat.messages.map(msg => ({
+        id: msg.id,
+        role: msg.role.toLowerCase() as 'user' | 'assistant',
+        content: msg.content,
+        timestamp: new Date(msg.createdAt),
+        thinking: false,
+        think: ''
+      }));
+      
+      // Set the retrieved messages
+      dispatch({ type: 'SET_MESSAGES', payload: formattedMessages });
+      
+    } catch (error) {
+      console.error('Error loading chat:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load chat';
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+    } finally {
+      dispatch({ type: 'SET_LOADING_HISTORY', payload: false });
+    }
+  }, [state.activeChatId]);
 
   // Update messages
   const updateMessage = useCallback((messageId: string, updates: Partial<ChatMessage>) => {
@@ -366,6 +445,28 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
     dispatch({ type: 'SET_ACTIVE_CHAT', payload: { id: null, title: 'New Chat' } });
   }, []);
 
+  // Delete a chat
+  const deleteChat = useCallback(async (chatId: string) => {
+    if (!chatId) return;
+    
+    try {
+      await chatApiService.deleteChat(chatId);
+      
+      // Remove from chat history
+      dispatch({ type: 'REMOVE_CHAT_FROM_HISTORY', payload: chatId });
+      
+      // If it was the active chat, clear messages and reset active chat
+      if (chatId === state.activeChatId) {
+        dispatch({ type: 'CLEAR_MESSAGES' });
+        dispatch({ type: 'SET_ACTIVE_CHAT', payload: { id: null, title: 'New Chat' } });
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete chat';
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+    }
+  }, [state.activeChatId]);
+
   // Dismiss error
   const dismissError = useCallback(() => {
     dispatch({ type: 'SET_ERROR', payload: null });
@@ -378,10 +479,15 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
     isSaving: state.isSaving,
     activeChatId: state.activeChatId,
     chatTitle: state.chatTitle,
+    chatHistory: state.chatHistory,
+    isLoadingHistory: state.isLoadingHistory,
     sendMessage,
     clearMessages,
     dismissError,
-    createNewChat
+    createNewChat,
+    loadChatHistory,
+    selectChat,
+    deleteChat
   }), [
     state.messages,
     state.isTyping,
@@ -389,10 +495,15 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
     state.isSaving,
     state.activeChatId,
     state.chatTitle,
+    state.chatHistory,
+    state.isLoadingHistory,
     sendMessage,
     clearMessages,
     dismissError,
-    createNewChat
+    createNewChat,
+    loadChatHistory,
+    selectChat,
+    deleteChat
   ]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

@@ -1,16 +1,28 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faComments, faAngleDoubleLeft, faAngleDoubleRight, faSignOut } from '@fortawesome/free-solid-svg-icons';
+import { faAngleDoubleLeft, faAngleDoubleRight, faPlus, faSignOut } from '@fortawesome/free-solid-svg-icons';
 import Logo from '../../assets/logo.png';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useChat } from '../../contexts/ChatContext';
+import ChatHistoryItem from '../chat/ChatHistoryItem';
 
 const Sidebar = () => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const profileDropdownRef = useRef<HTMLDivElement>(null);
     const profileButtonRef = useRef<HTMLDivElement>(null);
+    
     const { user, logout } = useAuth();
+    const { 
+        chatHistory, 
+        activeChatId, 
+        isLoadingHistory,
+        createNewChat, 
+        selectChat, 
+        deleteChat 
+    } = useChat();
+    
     const navigate = useNavigate();
 
     // Handle collapse based on window width
@@ -67,8 +79,16 @@ const Sidebar = () => {
         }
     };
 
+    const handleNewChat = async () => {
+        try {
+            await createNewChat();
+        } catch (error) {
+            console.error('Error creating new chat:', error);
+        }
+    };
+
     return (
-        <aside className={`bg-slate-100 text-gray-500 flex flex-col justify-between transition-all duration-300 ease-in-out ${isCollapsed ? 'w-14' : 'w-64'}`}>
+        <aside className={`bg-slate-100 text-gray-500 flex flex-col h-screen transition-all duration-300 ease-in-out ${isCollapsed ? 'w-14' : 'w-64'}`}>
             <div className="top">
                 <div className={`flex items-center *:hover:cursor-pointer ${isCollapsed ? 'flex-col' : 'justify-between'}`}>
                     <div className="brand flex items-center flex-grow">
@@ -85,15 +105,42 @@ const Sidebar = () => {
                         <FontAwesomeIcon icon={isCollapsed ? faAngleDoubleRight : faAngleDoubleLeft} />
                     </button>
                 </div>
-                <button className='flex items-center h-14 p-4 hover:bg-blue-500 hover:text-white w-full hover:cursor-pointer transition-colors'>
-                    <FontAwesomeIcon icon={faComments} />
-                    <span className={isCollapsed ? 'hidden' : 'ml-3'}>Chat</span>
+                <button 
+                    className='flex items-center h-14 p-4 hover:bg-blue-500 hover:text-white w-full hover:cursor-pointer transition-colors'
+                    onClick={handleNewChat}
+                    title="New Chat"
+                >
+                    <FontAwesomeIcon icon={faPlus} className="mr-2" />
+                    <span className={isCollapsed ? 'hidden' : ''}>New Chat</span>
                 </button>
             </div>
-            <div className="chat-list flex-grow">
-                {/* Chat list items would go here */}
+            
+            {/* Chat history list */}
+            <div className={`chat-list flex-grow overflow-y-auto p-2 ${isCollapsed ? 'hidden' : ''}`}>
+                <h3 className="text-xs uppercase font-bold text-gray-500 mb-2 px-2">Chat History</h3>
+                {isLoadingHistory ? (
+                    <div className="flex justify-center items-center p-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-500"></div>
+                    </div>
+                ) : chatHistory.length === 0 ? (
+                    <div className="text-center text-gray-500 p-4">
+                        <p className="text-sm">No chats yet</p>
+                        <p className="text-xs">Start a new conversation!</p>
+                    </div>
+                ) : (
+                    chatHistory.map(chat => (
+                        <ChatHistoryItem 
+                            key={chat.id}
+                            chat={chat}
+                            isActive={chat.id === activeChatId}
+                            onSelect={() => selectChat(chat.id)}
+                            onDelete={() => deleteChat(chat.id)}
+                        />
+                    ))
+                )}
             </div>
-            <div className={`flex justify-between items-center relative ${isCollapsed ? 'flex-col' : 'w-full px-3 py-2'}`}>
+            
+            <div className={`flex justify-between items-center relative border-t border-gray-300 ${isCollapsed ? 'flex-col' : 'w-full px-3 py-2'}`}>
                 <div
                     ref={profileButtonRef}
                     aria-hidden="true"
