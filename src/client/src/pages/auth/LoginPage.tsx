@@ -41,8 +41,8 @@ const LoginPage = () => {
   return (
     <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-800">Welcome Back</h2>
-        <p className="text-gray-600 mt-2">Please sign in to your account</p>
+        <h2 className="text-3xl font-bold text-gray-800">Chào mừng trở lại</h2>
+        <p className="text-gray-600 mt-2">Đăng nhập lẹ đi bạn êi!</p>
       </div>
 
       <Formik
@@ -100,9 +100,9 @@ const LoginPage = () => {
             </button>
             
             <div className="text-center mt-6">
-              <span className="text-gray-600">Don't have an account? </span>
+              <span className="block text-gray-600">Chưa có tài khoản ah? Nhấn vào đây nè! </span>
               <Link to="/register" className="text-blue-600 hover:text-blue-800 font-medium">
-                Sign up
+                Đăng ký ngay
               </Link>
             </div>
           </Form>

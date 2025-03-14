@@ -71,9 +71,9 @@ const RegisterPage = () => {
       <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
         <div className="text-center mb-8">
           <FontAwesomeIcon icon={faCheckCircle} className="text-green-500 text-5xl mb-4" />
-          <h2 className="text-3xl font-bold text-gray-800">Registration Successful!</h2>
-          <p className="text-gray-600 mt-2">Your account has been created successfully.</p>
-          <p className="text-gray-600">You will be redirected to login page shortly...</p>
+          <h2 className="text-3xl font-bold text-gray-800">Đăng ký thành công!</h2>
+          <p className="text-gray-600 mt-2">Tài khoản của bạn đã được tạo thành công.</p>
+          <p className="text-gray-600">Bạn sẽ được chuyển hướng đến trang đăng nhập sau vài giây.</p>
         </div>
         <Link
           to="/login"
@@ -88,8 +88,8 @@ const RegisterPage = () => {
   return (
     <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-800">Create an Account</h2>
-        <p className="text-gray-600 mt-2">Join ViVu Chat today</p>
+        <h2 className="text-3xl font-bold text-gray-800">Tạo tài khoản mới</h2>
+        <p className="text-gray-600 mt-2">Tham gia cùng chúng tớ nào!</p>
       </div>
 
       <Formik
@@ -125,7 +125,7 @@ const RegisterPage = () => {
                   id="username"
                   type="text"
                   name="username"
-                  placeholder="Choose a username"
+                  placeholder="Nhập username của bạn"
                   className="w-full outline-none"
                 />
               </div>
@@ -143,7 +143,7 @@ const RegisterPage = () => {
                   id="email"
                   type="email"
                   name="email"
-                  placeholder="Enter your email"
+                  placeholder="Nhập email của bạn"
                   className="w-full outline-none"
                 />
               </div>
@@ -152,7 +152,7 @@ const RegisterPage = () => {
 
             {/* Password field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
               <div className={`flex items-center border rounded-md px-3 py-2 ${
                 errors.password && touched.password ? 'border-red-500' : 'border-gray-300'
               }`}>
@@ -161,7 +161,7 @@ const RegisterPage = () => {
                   id="password"
                   type="password"
                   name="password"
-                  placeholder="Create a password"
+                  placeholder="Nhập mật khẩu"
                   className="w-full outline-none"
                 />
               </div>
@@ -170,7 +170,7 @@ const RegisterPage = () => {
 
             {/* Confirm Password field */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu</label>
               <div className={`flex items-center border rounded-md px-3 py-2 ${
                 errors.confirmPassword && touched.confirmPassword ? 'border-red-500' : 'border-gray-300'
               }`}>
@@ -179,7 +179,7 @@ const RegisterPage = () => {
                   id="confirmPassword"
                   type="password"
                   name="confirmPassword"
-                  placeholder="Confirm your password"
+                  placeholder="Xác nhận mật khẩu"
                   className="w-full outline-none"
                 />
               </div>
@@ -188,7 +188,7 @@ const RegisterPage = () => {
 
             {/* Phone Number field */}
             <div>
-              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">Phone Number (Optional)</label>
+              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại (Tuỳ chọn)</label>
               <div className={`flex items-center border rounded-md px-3 py-2 ${
                 errors.phoneNumber && touched.phoneNumber ? 'border-red-500' : 'border-gray-300'
               }`}>
@@ -197,7 +197,7 @@ const RegisterPage = () => {
                   id="phoneNumber"
                   type="tel"
                   name="phoneNumber"
-                  placeholder="Enter your phone number"
+                  placeholder="Nhập số điện thoại của bạn"
                   className="w-full outline-none"
                 />
               </div>
@@ -209,13 +209,13 @@ const RegisterPage = () => {
               disabled={isSubmitting}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors mt-6"
             >
-              {isSubmitting ? <LoadingSpinner size="small" /> : 'Sign Up'}
+              {isSubmitting ? <LoadingSpinner size="small" /> : 'Đăng ký'}
             </button>
 
             <div className="text-center mt-6">
-              <span className="text-gray-600">Already have an account? </span>
+              <span className="text-gray-600">Đã có tài khoản rồi? </span>
               <Link to="/login" className="text-blue-600 hover:text-blue-800 font-medium">
-                Sign in
+                Đăng nhập ngay
               </Link>
             </div>
           </Form>

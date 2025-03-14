@@ -22,7 +22,7 @@ const HomePage = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-y-auto">
-      <div className="max-w-4xl w-full mx-auto flex-grow flex flex-col justify-end p-4">
+      <div className="max-w-4xl w-full mx-auto flex-grow flex flex-col justify-end px-4">
         {/* Chat title/status bar - only show when there's an active chat */}
         <div className="sticky top-0 bg-white z-10 p-2 border-b border-slate-100 flex justify-between items-center">
           <div className="select-models">
