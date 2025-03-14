@@ -20,10 +20,28 @@ const Sidebar = () => {
         isLoadingHistory,
         createNewChat, 
         selectChat, 
-        deleteChat 
+        deleteChat,
+        loadChatHistory 
     } = useChat();
     
     const navigate = useNavigate();
+
+    // Refresh chat history when sidebar mounts
+    useEffect(() => {
+        loadChatHistory();
+    }, [loadChatHistory]);
+
+    // Additional effect to react to activeChatId changes
+    // This ensures the sidebar highlights the correct active chat
+    useEffect(() => {
+        if (activeChatId) {
+            const activeChat = chatHistory.find(chat => chat.id === activeChatId);
+            if (!activeChat) {
+                // If the active chat isn't in our history yet, refresh the list
+                loadChatHistory();
+            }
+        }
+    }, [activeChatId, chatHistory, loadChatHistory]);
 
     // Handle collapse based on window width
     useEffect(() => {

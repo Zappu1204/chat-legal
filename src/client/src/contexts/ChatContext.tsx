@@ -112,9 +112,20 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
     };
   }, []);
 
-  // Load chat history on component mount
-  useEffect(() => {
-    loadChatHistory();
+  // Move the loadChatHistory declaration up before it's used
+  const loadChatHistory = useCallback(async () => {
+    dispatch({ type: 'SET_LOADING_HISTORY', payload: true });
+    
+    try {
+      const response = await chatApiService.getUserChats();
+      dispatch({ type: 'SET_CHAT_HISTORY', payload: response.content });
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load chat history';
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+    } finally {
+      dispatch({ type: 'SET_LOADING_HISTORY', payload: false });
+    }
   }, []);
 
   // Create a new chat session
@@ -135,6 +146,11 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
       // Clear any existing messages
       dispatch({ type: 'CLEAR_MESSAGES' });
       
+      // Refresh chat history after creating a new chat
+      setTimeout(() => {
+        loadChatHistory(); // Call loadChatHistory after a short delay
+      }, 100);
+      
       return response;
     } catch (error) {
       console.error('Error creating chat:', error);
@@ -144,23 +160,7 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
     } finally {
       setIsInitializing(false);
     }
-  }, [modelId]);
-
-  // Load user's chat history
-  const loadChatHistory = useCallback(async () => {
-    dispatch({ type: 'SET_LOADING_HISTORY', payload: true });
-    
-    try {
-      const response = await chatApiService.getUserChats();
-      dispatch({ type: 'SET_CHAT_HISTORY', payload: response.content });
-    } catch (error) {
-      console.error('Error loading chat history:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load chat history';
-      dispatch({ type: 'SET_ERROR', payload: errorMessage });
-    } finally {
-      dispatch({ type: 'SET_LOADING_HISTORY', payload: false });
-    }
-  }, []);
+  }, [modelId, loadChatHistory]);
 
   // Select and load a specific chat
   const selectChat = useCallback(async (chatId: string) => {
@@ -300,6 +300,8 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
 
       // Only create a new chat if we don't have an active chat
       let currentChatId = state.activeChatId;
+      let isNewChat = false;
+      
       if (!currentChatId) {
         const newChat = await createNewChat();
         if (!newChat) {
@@ -307,6 +309,7 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
           return;
         }
         currentChatId = newChat.id;
+        isNewChat = true;
       }
       
       // Add the user message to the UI
@@ -315,6 +318,15 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
       try {
         // Save the user message to the backend
         await saveMessageToBackend(currentChatId, content, true);
+        
+        // If this is the first message of a new chat, refresh the chat list
+        // This helps update the sidebar with the new chat including its proper title
+        if (isNewChat) {
+          // Use a short delay to give the backend time to update the chat title
+          setTimeout(() => {
+            loadChatHistory();
+          }, 500);
+        }
       } catch (error) {
         console.error('Error saving user message:', error);
         // Continue with the conversation even if saving fails
@@ -436,7 +448,7 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
         });
       }
     },
-    [state.messages, state.isTyping, state.activeChatId, updateMessage, modelId, createNewChat, saveMessageToBackend]
+    [state.messages, state.isTyping, state.activeChatId, updateMessage, modelId, createNewChat, saveMessageToBackend, loadChatHistory]
   );
 
   // Clear all messages
@@ -471,6 +483,11 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
   const dismissError = useCallback(() => {
     dispatch({ type: 'SET_ERROR', payload: null });
   }, []);
+
+  // Load chat history on component mount - moved after all function definitions
+  useEffect(() => {
+    loadChatHistory();
+  }, [loadChatHistory]);
 
   const value = useMemo(() => ({
     messages: state.messages,
