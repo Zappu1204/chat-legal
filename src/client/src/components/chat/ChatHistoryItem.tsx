@@ -19,12 +19,8 @@ const ChatHistoryItem = ({ chat, isActive, onSelect, onDelete }: ChatHistoryItem
     );
 
     return (
-        <div
-            className={`flex items-center justify-between p-2 mb-1 rounded-md cursor-pointer text-left transition-colors
-        ${isActive ? 'bg-blue-500 text-white' : 'hover:bg-slate-200'}`}
-            onClick={onSelect}
-            title={chat.title}
-        >
+        <div className={`flex items-center justify-between p-2 mb-1 rounded-md cursor-pointer text-left transition-colors ${isActive ? 'bg-blue-500 text-white' : 'hover:bg-slate-200'}`}
+            onClick={onSelect} title={chat.title}>
             <div className="flex items-center flex-grow overflow-hidden">
                 <FontAwesomeIcon icon={faComment} className="mr-3" />
                 <div className="truncate">
@@ -40,7 +36,7 @@ const ChatHistoryItem = ({ chat, isActive, onSelect, onDelete }: ChatHistoryItem
                 }}
                 title="Delete chat"
             >
-                <FontAwesomeIcon icon={faTrash} />
+                <FontAwesomeIcon icon={faTrash} className='cursor-pointer w-8 h-8 text-red-500'/>
             </button>
         </div>
     );

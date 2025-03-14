@@ -23,7 +23,7 @@ const HomePage = () => {
         {/* Chat title/status bar - only show when there's an active chat */}
         {activeChatId && (
           <div className="sticky top-0 bg-white z-10 p-2 border-b border-slate-100 flex justify-between items-center">
-            <h2 className="text-2xl font-semibol text-center text-gray-700 truncate">{chatTitle}</h2>
+            <h2 className="text-xl font-semibol text-center text-gray-700 truncate">{chatTitle}</h2>
             {isSaving && (
               <div className="flex items-center text-sm text-blue-500">
                 <FontAwesomeIcon icon={faCircleNotch} spin className="mr-2" />

@@ -180,7 +180,7 @@ const Sidebar = () => {
                     <button type="button" onClick={handleLogout}
                         className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white hover:rounded-b-md text-left transition-colors'>
                         <FontAwesomeIcon icon={faSignOut} className='mr-3' />
-                        Logout
+                        Bye nha!
                     </button>
                 </div>
             </div>
