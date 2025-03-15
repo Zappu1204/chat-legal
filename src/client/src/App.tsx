@@ -7,6 +7,7 @@ import MainLayout from './layouts/MainLayout'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import HomePage from './pages/HomePage'
+import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import './App.css'
@@ -30,6 +31,7 @@ function App() {
               </ChatProvider>
             }>
               <Route path="/" element={<HomePage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="/settings" element={<SettingsPage />} />
               {/* Add more routes here */}
             </Route>

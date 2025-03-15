@@ -50,6 +50,7 @@ const authService = {
       return payload.exp * 1000 < Date.now();
     } catch (e) {
       // If we can't decode the token, assume it's expired
+      console.log('Error decoding token:', e);
       return true;
     }
   },

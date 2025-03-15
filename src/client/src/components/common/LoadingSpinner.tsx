@@ -1,37 +1,26 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleNotch } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 interface LoadingSpinnerProps {
   size?: 'small' | 'medium' | 'large';
-  fullScreen?: boolean;
+  color?: string;
+  className?: string;
 }
 
-const LoadingSpinner = ({ size = 'medium', fullScreen = false }: LoadingSpinnerProps) => {
-  const sizeClass = {
-    small: 'text-lg',
-    medium: 'text-2xl',
-    large: 'text-4xl',
-  }[size];
-
-  const spinner = (
-    <FontAwesomeIcon 
-      icon={faCircleNotch} 
-      spin 
-      className={`text-blue-500 ${sizeClass}`} 
-    />
-  );
-
-  if (fullScreen) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-80 z-50">
-        {spinner}
-      </div>
-    );
-  }
+const LoadingSpinner = ({ size = 'medium', color = 'text-blue-500', className = '' }: LoadingSpinnerProps) => {
+  const sizeClasses = {
+    small: 'w-4 h-4',
+    medium: 'w-8 h-8',
+    large: 'w-12 h-12',
+  };
 
   return (
-    <div className="flex items-center justify-center p-4">
-      {spinner}
+    <div className={`flex items-center justify-center ${className}`}>
+      <FontAwesomeIcon
+        icon={faSpinner}
+        spin
+        className={`${sizeClasses[size]} ${color}`}
+      />
     </div>
   );
 };
