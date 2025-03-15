@@ -23,13 +23,14 @@ public class Chat {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
+    private String model;
+    
+    @Column(length = 255)
     private String title;
     
+    @Column(length = 1000)
     private String description;
-    
-    @Column(nullable = false)
-    private String model;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -40,15 +41,27 @@ public class Chat {
     private List<Message> messages = new ArrayList<>();
     
     @CreationTimestamp
-    @Column(updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Instant createdAt;
     
     @UpdateTimestamp
+    @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Instant updatedAt;
     
     // Helper method to add message
     public void addMessage(Message message) {
         messages.add(message);
         message.setChat(this);
+    }
+    
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+        updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
     }
 }

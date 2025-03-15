@@ -20,9 +20,18 @@ const authService = {
    * Login a user with username and password
    */
   login: async (username: string, password: string): Promise<JwtResponse> => {
-    const loginRequest: LoginRequest = { username, password };
-    const response = await authAxios.post<JwtResponse>('/api/auth/login', loginRequest);
-    return response.data;
+    try {
+      const loginRequest: LoginRequest = { username, password };
+      const response = await authAxios.post<JwtResponse>('/api/auth/login', loginRequest);
+      return response.data;
+    } catch (error: any) {
+      // Extract error message from response for display
+      if (error.response && error.response.data) {
+        const errorData = error.response.data;
+        throw new Error(errorData.message || 'Login failed');
+      }
+      throw error;
+    }
   },
   
   /**

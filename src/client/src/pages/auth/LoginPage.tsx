@@ -28,8 +28,18 @@ const LoginPage = () => {
       navigate('/');
     } catch (error) {
       console.error('Login error:', error);
+      
+      // Handle specific error messages
       if (error instanceof Error) {
-        setApiError(error.message ?? 'Invalid username or password');
+        // Check for deactivated account message
+        if (error.message.toLowerCase().includes('account is deactivated') || 
+            error.message.toLowerCase().includes('account has been deactivated')) {
+          setApiError('Your account has been deactivated. Please contact an administrator.');
+        } else if (error.message.toLowerCase().includes('locked')) {
+          setApiError('Your account is temporarily locked. Please try again later.');
+        } else {
+          setApiError(error.message || 'Invalid username or password');
+        }
       } else {
         setApiError('An error occurred during login');
       }

@@ -30,6 +30,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -65,14 +66,31 @@ public class AuthService implements UserDetailsService, IAuthService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByUsername(username)
-                .map(user -> {
-                    // Force initialization of roles inside transaction
-                    int rolesSize = user.getRoles().size();
-                    log.debug("User roles size: {}", rolesSize);
-                    return UserDetailsImpl.build(user);
-                })
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+        // return userRepository.findByUsername(username)
+        //         .map(user -> {
+        //             // Force initialization of roles inside transaction
+        //             int rolesSize = user.getRoles().size();
+        //             log.debug("User roles size: {}", rolesSize);
+        //             return UserDetailsImpl.build(user);
+        //         })
+        //         .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + username));
+            
+        // Check if account is active
+        if (!user.getIsActive()) {
+            log.warn("Failed login attempt for inactive account: {}", username);
+            throw new RuntimeException("Account is deactivated");
+        }
+        
+        // Check if account is locked
+        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(Instant.now())) {
+            log.warn("Failed login attempt for locked account: {}", username);
+            throw new RuntimeException("Account is temporarily locked until " + user.getLockedUntil());
+        }
+        
+        return UserDetailsImpl.build(user);
     }
 
     @Override

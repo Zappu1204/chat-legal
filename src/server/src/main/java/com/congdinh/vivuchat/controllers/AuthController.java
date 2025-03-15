@@ -8,6 +8,7 @@ import com.congdinh.vivuchat.dtos.requests.RevokeTokenRequest;
 import com.congdinh.vivuchat.dtos.responses.JwtResponse;
 import com.congdinh.vivuchat.dtos.responses.MessageResponse;
 import com.congdinh.vivuchat.events.AuthenticationEvent;
+import com.congdinh.vivuchat.exceptions.AccountDeactivatedException;
 import com.congdinh.vivuchat.exceptions.TokenRefreshException;
 import com.congdinh.vivuchat.services.interfaces.IAuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -66,6 +67,16 @@ public class AuthController {
                     getClientIp(request)
             ));
             return ResponseEntity.ok(jwtResponse);
+        } catch (AccountDeactivatedException e) {
+            // Publish failed login event with specific reason
+            eventPublisher.publishEvent(new AuthenticationEvent(
+                    this, 
+                    loginRequest.getUsername(), 
+                    AuthenticationEvent.AuthEventType.LOGIN_FAILED,
+                    "Account deactivated",
+                    getClientIp(request)
+            ));
+            throw e;
         } catch (BadCredentialsException e) {
             // Publish failed login event
             eventPublisher.publishEvent(new AuthenticationEvent(

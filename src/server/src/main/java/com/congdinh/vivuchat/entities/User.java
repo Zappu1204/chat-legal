@@ -48,6 +48,14 @@ public class User {
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
+    // User status - active or inactive
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+    
+    // Optional account lockout timestamp
+    @Column(name = "locked_until")
+    private Instant lockedUntil;
+
     @JsonIgnore
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
@@ -84,6 +92,9 @@ public class User {
         }
         if (updatedAt == null) {
             updatedAt = Instant.now();
+        }
+        if (isActive == null) {
+            isActive = true;
         }
     }
 

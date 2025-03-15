@@ -8,7 +8,11 @@ import com.congdinh.vivuchat.repositories.IRefreshTokenRepository;
 import com.congdinh.vivuchat.repositories.IUserRepository;
 import com.congdinh.vivuchat.services.interfaces.IAuthService;
 import com.congdinh.vivuchat.services.interfaces.IRefreshTokenService;
+import com.congdinh.vivuchat.dtos.admin.UserAdminResponse;
+import com.congdinh.vivuchat.dtos.admin.UserStatusUpdateRequest;
+import com.congdinh.vivuchat.services.interfaces.IAdminUserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -19,6 +23,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -26,13 +34,14 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-@Tag(name = "Administration", description = "Admin-only API endpoints")
+@Tag(name = "Admin", description = "Admin management endpoints")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminController {
 
@@ -41,6 +50,7 @@ public class AdminController {
     private final IUserRepository userRepository;
     private final IRefreshTokenRepository refreshTokenRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final IAdminUserService adminUserService;
 
     @PostMapping("/tokens/revoke")
     @Operation(
@@ -191,6 +201,51 @@ public class AdminController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
+    @GetMapping("/users")
+    @Operation(summary = "List all users with pagination and filtering")
+    public ResponseEntity<Page<UserAdminResponse>> listUsers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean isActive,
+            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+        
+        try {
+            Page<UserAdminResponse> users = adminUserService.findAllUsers(search, isActive, pageable);
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            log.error("Error retrieving users list", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/users/{userId}")
+    @Operation(summary = "Get user details by ID")
+    public ResponseEntity<UserAdminResponse> getUserDetails(@PathVariable UUID userId) {
+        try {
+            UserAdminResponse user = adminUserService.getUserDetails(userId);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            log.error("Error retrieving user details for ID: {}", userId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PatchMapping("/users/{userId}/status")
+    @Operation(summary = "Update user active status")
+    public ResponseEntity<MessageResponse> updateUserStatus(
+            @PathVariable UUID userId,
+            @Valid @RequestBody UserStatusUpdateRequest request) {
+        
+        try {
+            MessageResponse response = adminUserService.updateUserStatus(userId, request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error updating status for user ID: {}", userId, e);
+            return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new MessageResponse(e.getMessage(), false));
+        }
+    }
+
     // Helper method to get client IP address
     private String getClientIp(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");

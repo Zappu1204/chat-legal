@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faAngleDoubleLeft, faAngleDoubleRight, faPlus, faSignOut } from '@fortawesome/free-solid-svg-icons';
+import { faAngleDoubleLeft, faAngleDoubleRight, faPlus, faSignOut, faUserShield } from '@fortawesome/free-solid-svg-icons';
 import Logo from '../../assets/logo.png';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -26,6 +26,9 @@ const Sidebar = () => {
 
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Check if user has admin role
+    const isAdmin = user?.roles?.includes('ROLE_ADMIN');
 
     // Refresh chat history when sidebar mounts
     useEffect(() => {
@@ -194,14 +197,22 @@ const Sidebar = () => {
                 )}
                 <div
                     ref={profileDropdownRef}
-                    className={`absolute bottom-full ${isCollapsed ? 'left-4' : 'left-3'} w-36 bg-white shadow-lg rounded-md z-10 *:hover:cursor-pointer ${isProfileDropdownOpen ? 'block' : 'hidden'}`}
+                    className={`absolute bottom-full ${isCollapsed ? 'left-4' : 'left-3'} w-48 bg-white shadow-lg rounded-md z-10 *:hover:cursor-pointer ${isProfileDropdownOpen ? 'block' : 'hidden'}`}
                 >
                     <Link to='/profile'
                         className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white hover:rounded-t-md transition-colors'>
                         {user?.username ?? 'Profile'}
                     </Link>
+                    {/* Admin Management link - only shown for admin users */}
+                    {isAdmin && (
+                        <Link to='/admin'
+                            className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white transition-colors'>
+                            <FontAwesomeIcon icon={faUserShield} className="mr-2" />
+                            Admin Panel
+                        </Link>
+                    )}
                     <Link to='/settings'
-                        className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white hover:rounded-t-md transition-colors'>
+                        className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white transition-colors'>
                         Cài đặt
                     </Link>
                     <button type="button" onClick={handleLogout}
