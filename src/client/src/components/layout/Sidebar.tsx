@@ -2,7 +2,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faAngleDoubleLeft, faAngleDoubleRight, faPlus, faSignOut } from '@fortawesome/free-solid-svg-icons';
 import Logo from '../../assets/logo.png';
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
 import ChatHistoryItem from '../chat/ChatHistoryItem';
@@ -25,6 +25,7 @@ const Sidebar = () => {
     } = useChat();
 
     const navigate = useNavigate();
+    const location = useLocation();
 
     // Refresh chat history when sidebar mounts
     useEffect(() => {
@@ -98,10 +99,31 @@ const Sidebar = () => {
     };
 
     const handleNewChat = () => {
-        // Pass false to prevent API call, just reset UI
-        // Navigate to chat page to start a new chat
-        navigate('/');
-        createNewChat(false);
+        // Navigate to home page if not already there
+        if (location.pathname !== '/') {
+            navigate('/');
+            // Slight delay to ensure navigation completes
+            setTimeout(() => {
+                createNewChat(false);
+            }, 100);
+        } else {
+            // Just reset UI if already on home page
+            createNewChat(false);
+        }
+    };
+
+    const handleSelectChat = (chatId: string) => {
+        // Navigate to home page if not already there
+        if (location.pathname !== '/') {
+            navigate('/');
+            // Slight delay to ensure navigation completes
+            setTimeout(() => {
+                selectChat(chatId);
+            }, 100);
+        } else {
+            // Just select chat if already on home page
+            selectChat(chatId);
+        }
     };
 
     return (
@@ -151,7 +173,7 @@ const Sidebar = () => {
                                 key={chat.id}
                                 chat={chat}
                                 isActive={chat.id === activeChatId}
-                                onSelect={() => selectChat(chat.id)}
+                                onSelect={() => handleSelectChat(chat.id)}
                                 onDelete={() => deleteChat(chat.id)}
                             />
                         ))

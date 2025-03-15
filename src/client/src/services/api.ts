@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import authService from './authService';
+import { ApiError } from '../types/auth';
 
 // More robust way to get API base URL
 const getApiBaseUrl = () => {
@@ -51,7 +52,7 @@ api.interceptors.request.use(
     return config;
   },
   (error: AxiosError) => {
-    return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    return Promise.reject(new Error(formatApiError(error).message));
   }
 );
 
@@ -61,9 +62,11 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config;
     
-    // If there's no config or the error is not 401, or we've already retried, reject immediately
-    if (!originalRequest || error.response?.status !== 401 || (originalRequest as any)._retry) {
-      return Promise.reject(error);
+    // Handle both 401 and 403 errors for token expiration
+    if (!originalRequest || 
+        (error.response?.status !== 401 && error.response?.status !== 403) || 
+        (originalRequest as any)._retry) {
+      return Promise.reject(new Error(formatApiError(error).message));
     }
 
     // Mark this request as retried to avoid infinite loops
@@ -79,7 +82,7 @@ api.interceptors.response.use(
           return axios(originalRequest);
         })
         .catch(err => {
-          return Promise.reject(err);
+          return Promise.reject(new Error(formatApiError(err).message));
         });
     }
 
@@ -117,15 +120,52 @@ api.interceptors.response.use(
       
     } catch (refreshError) {
       // Refresh token failed - could be expired too, log user out
-      processQueue(refreshError as Error);
+      processQueue(refreshError as Error, null);
       localStorage.removeItem('user');
-      window.location.href = '/login';
-      return Promise.reject(refreshError);
+      
+      // Redirect to login only if in browser environment
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login?session=expired';
+      }
+      return Promise.reject(new Error(formatApiError(refreshError).message));
       
     } finally {
       isRefreshing = false;
     }
   }
 );
+
+// Format API errors consistently
+function formatApiError(error: unknown): ApiError {
+  const apiError: ApiError = {
+    message: 'An unknown error occurred',
+    status: 500
+  };
+  
+  if (axios.isAxiosError(error)) {
+    apiError.status = error.response?.status || 500;
+    
+    if (error.response?.data) {
+      const errorData = error.response.data as any;
+      apiError.message = errorData.message || errorData.error || error.message;
+      apiError.timestamp = errorData.timestamp;
+      apiError.path = errorData.path;
+      apiError.details = errorData.details;
+    } else {
+      apiError.message = error.message;
+    }
+    
+    // Add request metadata
+    if (error.config?.url) {
+      apiError.path = error.config.url;
+    }
+  } else if (error instanceof Error) {
+    apiError.message = error.message;
+  } else if (typeof error === 'string') {
+    apiError.message = error;
+  }
+  
+  return apiError;
+}
 
 export default api;

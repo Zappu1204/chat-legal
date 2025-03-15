@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { JwtResponse, RegisterRequest, MessageResponse } from '../types/auth';
 import authService from '../services/authService';
 
@@ -29,78 +29,63 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
     const [user, setUser] = useState<JwtResponse | null>(null);
     const [loading, setLoading] = useState(true);
-    const refreshTimerRef = useRef<number | null>(null);
 
-    // Function to refresh the token session
+    // Function to get user from storage - used in multiple places
+    const getUserFromStorage = useCallback(() => {
+        try {
+            const userStr = localStorage.getItem('user');
+            return userStr ? JSON.parse(userStr) as JwtResponse : null;
+        } catch (e) {
+            console.error('Failed to parse stored user:', e);
+            localStorage.removeItem('user');
+            return null;
+        }
+    }, []);
+
+    // Function to refresh the token session - only when explicitly needed
     const refreshSession = useCallback(async (): Promise<JwtResponse | null> => {
         try {
-            // Stop any existing refresh timers
-            if (refreshTimerRef.current) {
-                window.clearTimeout(refreshTimerRef.current);
-                refreshTimerRef.current = null;
+            // Get user data from storage
+            const userData = getUserFromStorage();
+            if (!userData?.refreshToken) {
+                return null;
             }
 
-            const userStr = localStorage.getItem('user');
-            if (!userStr) return null;
-            
-            const userData = JSON.parse(userStr) as JwtResponse;
-            
-            if (!userData.refreshToken) return null;
-            
-            // Check if access token is still valid with some margin (60 seconds)
-            if (userData.accessToken && 
-                !authService.isTokenExpired(userData.accessToken) && 
-                authService.getTokenRemainingTime(userData.accessToken) > 60) {
-                // Schedule refresh before token expires
-                scheduleTokenRefresh(userData.accessToken);
-                setUser(userData);
-                return userData;
-            }
-            
-            // If we're here, we need to refresh the token
+            // Only refresh if there's a refresh token available
             const response = await authService.refreshToken(userData.refreshToken);
             
-            // Update in localStorage
-            const updatedUser = { ...userData, ...response };
+            // Update localStorage with new tokens
+            const updatedUser = {
+                ...userData,
+                accessToken: response.accessToken,
+                refreshToken: response.refreshToken
+            };
             localStorage.setItem('user', JSON.stringify(updatedUser));
             setUser(updatedUser);
-            
-            // Schedule the next refresh
-            scheduleTokenRefresh(response.accessToken);
             
             return updatedUser;
         } catch (error) {
             console.error('Error refreshing session:', error);
-            logout();
+            // Clear user data on refresh failure
+            setUser(null);
+            localStorage.removeItem('user');
             return null;
         }
-    }, []);
-    
-    // Schedule token refresh before expiration
-    const scheduleTokenRefresh = useCallback((token: string) => {
-        if (refreshTimerRef.current) {
-            window.clearTimeout(refreshTimerRef.current);
-        }
-        
-        // Get token remaining time in seconds
-        const remainingTimeInSeconds = authService.getTokenRemainingTime(token);
-        
-        // Refresh at 80% of the token lifetime to ensure we have a valid token at all times
-        const refreshDelay = Math.max(10, remainingTimeInSeconds * 0.8) * 1000;
-        
-        console.log(`Token refresh scheduled in ${Math.round(refreshDelay / 1000)} seconds`);
-        
-        refreshTimerRef.current = window.setTimeout(() => {
-            refreshSession();
-        }, refreshDelay);
-    }, [refreshSession]);
+    }, [getUserFromStorage]);
 
+    // On initial load, check if we have a stored user
     useEffect(() => {
-        // On initial load, check if we have a stored user and refresh the session
         const initializeAuth = async () => {
             setLoading(true);
             try {
-                await refreshSession();
+                // Simply get user from storage - no auto refresh here
+                // The API interceptor will handle token refreshing when needed
+                const userData = getUserFromStorage();
+                
+                // If userData exists, set the user state
+                if (userData) {
+                    setUser(userData);
+                }
             } catch (error) {
                 console.error('Error initializing auth:', error);
                 localStorage.removeItem('user');
@@ -110,31 +95,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         };
         
         initializeAuth();
-        
-        // Cleanup function to clear any pending timeouts
-        return () => {
-            if (refreshTimerRef.current) {
-                window.clearTimeout(refreshTimerRef.current);
-            }
-        };
-    }, [refreshSession]);
+    }, [getUserFromStorage]);
 
     const login = useCallback(async (username: string, password: string): Promise<JwtResponse> => {
         try {
             setLoading(true);
             const response = await authService.login(username, password);
             
+            // Store user data
             setUser(response);
             localStorage.setItem('user', JSON.stringify(response));
-            
-            // Set up token refresh
-            scheduleTokenRefresh(response.accessToken);
             
             return response;
         } finally {
             setLoading(false);
         }
-    }, [scheduleTokenRefresh]);
+    }, []);
 
     const register = useCallback(async (registerData: RegisterRequest): Promise<MessageResponse> => {
         try {
@@ -155,12 +131,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
-            // Clear refresh timer
-            if (refreshTimerRef.current) {
-                window.clearTimeout(refreshTimerRef.current);
-                refreshTimerRef.current = null;
-            }
-            
+            // Clear user data
             setUser(null);
             localStorage.removeItem('user');
             setLoading(false);
