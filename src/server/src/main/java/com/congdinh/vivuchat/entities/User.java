@@ -1,47 +1,94 @@
 package com.congdinh.vivuchat.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-@Entity
-@Table(name = "users")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
+@Table(name = "users",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "username"),
+                @UniqueConstraint(columnNames = "email")
+        })
 public class User {
-    
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
-    
-    @Column(unique = true, nullable = false)
+
+    @Column(nullable = false, length = 50, unique = true)
     private String username;
-    
-    @Column(unique = true, nullable = false)
+
+    @Column(nullable = false, length = 100, unique = true)
     private String email;
-    
+
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
+
+    // Profile fields
+    @Column(name = "first_name", length = 50)
+    private String firstName;
     
+    @Column(name = "last_name", length = 50)
+    private String lastName;
+    
+    @Column(name = "avatar_url", length = 1024)
+    private String avatarUrl;
+    
+    @Column(name = "phone_number", length = 20)
     private String phoneNumber;
-    
-    private String avatar;
-    
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    @Builder.Default
+
+    @JsonIgnore
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
+
+    // Fix temporal columns with explicit column definition for PostgreSQL compatibility
+    @Column(name = "created_at", nullable = false, updatable = false, 
+            columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private Instant createdAt;
+
+    @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private Instant updatedAt;
+
+    // Calculated property (not stored in database)
+    @Transient
+    public String getDisplayName() {
+        if (firstName != null && lastName != null) {
+            return firstName + " " + lastName;
+        } else if (firstName != null) {
+            return firstName;
+        } else if (lastName != null) {
+            return lastName;
+        } else {
+            return username;
+        }
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+        if (updatedAt == null) {
+            updatedAt = Instant.now();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
+    }
 }
