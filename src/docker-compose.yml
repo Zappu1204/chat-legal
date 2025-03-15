@@ -36,6 +36,7 @@ services:
       context: .
       dockerfile: deployment/Dockerfile.server
     container_name: vivuchat-server
+    image: congdinh2012/vivuchat-server
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/vivuchat
       - SPRING_DATASOURCE_USERNAME=postgres
@@ -62,6 +63,7 @@ services:
       args:
         - VITE_API_BASE_URL=/api
     container_name: vivuchat-client
+    image: congdinh2012/vivuchat-client
     ports:
       - "80:80"
     depends_on:

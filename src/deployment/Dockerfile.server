@@ -26,7 +26,8 @@ COPY --from=build /app/target/*.jar app.jar
 # Environment variables with default values
 ENV SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/vivuchat
 ENV SPRING_DATASOURCE_USERNAME=postgres
-ENV SPRING_DATASOURCE_PASSWORD=postgres
+# Database password should be provided at runtime
+# ENV SPRING_DATASOURCE_PASSWORD=postgres
 ENV OLLAMA_API_BASE_URL=http://ollama:11434
 ENV SERVER_PORT=8080
 
