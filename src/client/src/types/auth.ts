@@ -1,8 +1,4 @@
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
-
+// Auth response types
 export interface JwtResponse {
   accessToken: string;
   refreshToken: string;
@@ -13,8 +9,10 @@ export interface JwtResponse {
   roles: string[];
 }
 
-export interface LogoutRequest {
+// Auth request types
+export interface LoginRequest {
   username: string;
+  password: string;
 }
 
 export interface RegisterRequest {
@@ -25,16 +23,28 @@ export interface RegisterRequest {
   roles?: string[];
 }
 
-export interface MessageResponse {
-  message: string;
-  success: boolean;
+export interface LogoutRequest {
+  username: string;
 }
 
-export interface ApiError {
-  message: string;
-  status: number;
+export interface RefreshTokenRequest {
+  refreshToken: string;
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface UpdateProfileRequest {
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  phoneNumber?: string;
+}
+
+// User profile type
 export interface UserProfile {
   id: string;
   username: string;
@@ -42,22 +52,24 @@ export interface UserProfile {
   firstName: string | null;
   lastName: string | null;
   displayName: string;
-  avatarUrl: string | null;
   phoneNumber: string | null;
+  avatarUrl: string | null;
   roles: string[];
   createdAt: string;
   updatedAt: string;
 }
 
-export interface UpdateProfileRequest {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phoneNumber?: string;
+// API response types
+export interface MessageResponse {
+  message: string;
+  success: boolean;
 }
 
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
+// Error type
+export interface ApiError {
+  message: string;
+  status?: number;
+  timestamp?: string;
+  path?: string;
+  details?: string;
 }

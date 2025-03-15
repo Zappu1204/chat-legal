@@ -143,11 +143,11 @@ function formatApiError(error: unknown): ApiError {
   };
   
   if (axios.isAxiosError(error)) {
-    apiError.status = error.response?.status || 500;
+    apiError.status = error.response?.status ?? 500;
     
     if (error.response?.data) {
-      const errorData = error.response.data as any;
-      apiError.message = errorData.message || errorData.error || error.message;
+      const errorData = error.response?.data as { message?: string; error?: string; timestamp?: string; path?: string; details?: string };
+      apiError.message = errorData.message ?? errorData.error ?? error.message;
       apiError.timestamp = errorData.timestamp;
       apiError.path = errorData.path;
       apiError.details = errorData.details;

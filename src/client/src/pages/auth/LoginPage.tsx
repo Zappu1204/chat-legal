@@ -5,6 +5,7 @@ import * as Yup from 'yup';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faLock, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const LoginSchema = Yup.object().shape({
@@ -19,29 +20,37 @@ const LoginSchema = Yup.object().shape({
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { addToast } = useToast();
   const [apiError, setApiError] = useState<string | null>(null);
 
   const handleSubmit = async (values: { username: string; password: string }, { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }) => {
     try {
       setApiError(null);
       await login(values.username, values.password);
+      addToast('success', 'Login successful! Welcome back.');
       navigate('/');
     } catch (error) {
       console.error('Login error:', error);
       
       // Handle specific error messages
       if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        
         // Check for deactivated account message
-        if (error.message.toLowerCase().includes('account is deactivated') || 
-            error.message.toLowerCase().includes('account has been deactivated')) {
+        if (errorMessage.includes('account is deactivated')) {
           setApiError('Your account has been deactivated. Please contact an administrator.');
-        } else if (error.message.toLowerCase().includes('locked')) {
+          addToast('error', 'Account deactivated. Please contact an administrator.');
+        } else if (errorMessage.includes('locked')) {
           setApiError('Your account is temporarily locked. Please try again later.');
+          addToast('warning', 'Account locked. Please try again later.');
         } else {
-          setApiError(error.message || 'Invalid username or password');
+          // Display the actual error message from the server
+          setApiError(error.message);
+          addToast('error', 'Login failed. Please check your credentials.');
         }
       } else {
         setApiError('An error occurred during login');
+        addToast('error', 'An unexpected error occurred. Please try again.');
       }
     } finally {
       setSubmitting(false);

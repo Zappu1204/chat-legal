@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { JwtResponse, LoginRequest, LogoutRequest, RegisterRequest, MessageResponse, RefreshTokenRequest } from '../types/auth';
+import { JwtResponse, RegisterRequest, MessageResponse, LogoutRequest, RefreshTokenRequest, LoginRequest } from '../types/auth';
 
 // Get the base URL from environment or use default
 const getApiBaseUrl = () => {
@@ -26,9 +26,17 @@ const authService = {
       return response.data;
     } catch (error: any) {
       // Extract error message from response for display
-      if (error.response && error.response.data) {
+      if (error.response?.data) {
         const errorData = error.response.data;
-        throw new Error(errorData.message || 'Login failed');
+        
+        // Check if there are detailed error information
+        if (errorData.details) {
+          throw new Error(errorData.details);
+        } else if (errorData.message) {
+          throw new Error(errorData.message);
+        } else {
+          throw new Error('Login failed');
+        }
       }
       throw error;
     }
