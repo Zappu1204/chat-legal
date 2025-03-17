@@ -63,12 +63,12 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
-    // Fix temporal columns with explicit column definition for PostgreSQL compatibility
+    // Fix temporal columns by removing the DEFAULT keyword
     @Column(name = "created_at", nullable = false, updatable = false, 
-            columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+            columnDefinition = "TIMESTAMP")
     private Instant createdAt;
 
-    @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    @Column(name = "updated_at", columnDefinition = "TIMESTAMP")
     private Instant updatedAt;
 
     // Calculated property (not stored in database)
