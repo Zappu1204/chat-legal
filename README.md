@@ -63,6 +63,63 @@ After the services are running, access:
 - API: http://localhost:8080
 - Ollama: http://localhost:11434
 
+## Running on Apple Silicon (M1/M2)
+
+For Mac users with Apple Silicon (M1/M2) processors, our Docker configuration supports ARM64 architecture:
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/vivu-chat.git
+cd vivu-chat
+
+# Edit docker-compose.yml to use ARM64 architecture
+# Change BUILDPLATFORM values from linux/amd64 to linux/arm64
+
+# Start all services
+cd src
+docker-compose up -d
+
+# Pull an AI model optimized for ARM
+docker exec -it vivuchat-ollama ollama pull gemma:2b
+```
+
+### Specifying Platform in Docker Compose
+
+There are multiple ways to specify the platform when running Docker Compose:
+
+1. **Using environment variables** (recommended):
+```bash
+# For ARM64 (Apple M1/M2)
+DOCKER_DEFAULT_PLATFORM=linux/arm64 docker-compose up -d
+
+# For AMD64 (Intel/AMD processors)
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker-compose up -d
+```
+
+2. **Using Docker Compose build arguments** (already configured):
+```bash
+# Edit the BUILDPLATFORM args in docker-compose.yml before running
+docker-compose up --build
+```
+
+3. **Using Docker BuildKit**:
+```bash
+# Enable BuildKit
+export DOCKER_BUILDKIT=1
+
+# Set the platform
+export BUILDPLATFORM=linux/arm64
+
+# Run Docker Compose
+docker-compose up --build
+```
+
+If you experience any architecture-related issues:
+
+- Make sure Docker Desktop is updated to the latest version
+- Verify that the BUILDPLATFORM is set to `linux/arm64` in the docker-compose.yml file
+- Check that both Dockerfiles properly use the platform variable with `--platform=${BUILDPLATFORM}`
+
 ## Detailed Docker Setup
 
 ### Environment Configuration
@@ -155,6 +212,15 @@ If PostgreSQL connection fails:
 - Ensure the database is running: `docker ps | grep postgres`
 - Check connection settings in `application-docker.properties`
 - Verify database initialization: `docker exec -it vivuchat-postgres psql -U postgres -c '\l'`
+
+### Architecture-specific Issues
+
+If encountering "exec format error" messages:
+- Verify your architecture: `uname -m`
+- Set the platform explicitly: `DOCKER_DEFAULT_PLATFORM=linux/arm64 docker-compose up -d`
+- Update BUILDPLATFORM in docker-compose.yml accordingly
+- Ensure base images support your architecture
+- Try using multiarch images like `--platform=linux/arm64` for Apple Silicon
 
 ## Development Setup
 

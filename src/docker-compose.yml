@@ -35,6 +35,8 @@ services:
     build:
       context: .
       dockerfile: deployment/Dockerfile.server
+      args:
+        - BUILDPLATFORM=linux/amd64
     container_name: vivuchat-server
     image: congdinh2012/vivuchat-server
     environment:
@@ -62,6 +64,7 @@ services:
       dockerfile: deployment/Dockerfile.client
       args:
         - VITE_API_BASE_URL=/api
+        - BUILDPLATFORM=linux/amd64
     container_name: vivuchat-client
     image: congdinh2012/vivuchat-client
     ports:
