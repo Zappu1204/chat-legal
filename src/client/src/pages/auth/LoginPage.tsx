@@ -10,11 +10,11 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const LoginSchema = Yup.object().shape({
   username: Yup.string()
-    .required('Username is required')
-    .min(3, 'Username must be at least 3 characters'),
+    .required('Tên người dùng không được để trống')
+    .min(3, 'Tên người dùng phải có ít nhất 3 ký tự'),
   password: Yup.string()
-    .required('Password is required')
-    .min(6, 'Password must be at least 6 characters'),
+    .required('Mật khẩu không được để trống')
+    .min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
 });
 
 const LoginPage = () => {
@@ -27,7 +27,7 @@ const LoginPage = () => {
     try {
       setApiError(null);
       await login(values.username, values.password);
-      addToast('success', 'Login successful! Welcome back.');
+      addToast('success', 'Đăng nhập thành công! Chào mừng bạn trở lại!');
       navigate('/');
     } catch (error) {
       console.error('Login error:', error);
@@ -37,20 +37,20 @@ const LoginPage = () => {
         const errorMessage = error.message.toLowerCase();
         
         // Check for deactivated account message
-        if (errorMessage.includes('account is deactivated')) {
-          setApiError('Your account has been deactivated. Please contact an administrator.');
-          addToast('error', 'Account deactivated. Please contact an administrator.');
-        } else if (errorMessage.includes('locked')) {
-          setApiError('Your account is temporarily locked. Please try again later.');
-          addToast('warning', 'Account locked. Please try again later.');
+        if (errorMessage.includes('tài khoản chưa kích hoạt') || errorMessage.includes('account is deactivated')) {
+          setApiError('Tài khoản của bạn chưa kích hoạt. Vui lòng liên hệ với quản trị viên.');
+          addToast('error', 'Tài khoản chưa kích hoạt. Vui lòng liên hệ với quản trị viên.');
+        } else if (errorMessage.includes('khóa') || errorMessage.includes('locked')) {
+          setApiError('Tài khoản của bạn đã bị khóa. Vui lòng thử lại sau.');
+          addToast('warning', 'Tài khoản đã bị khóa. Vui lòng thử lại sau.');
         } else {
           // Display the actual error message from the server
           setApiError(error.message);
-          addToast('error', 'Login failed. Please check your credentials.');
+          addToast('error', 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
         }
       } else {
-        setApiError('An error occurred during login');
-        addToast('error', 'An unexpected error occurred. Please try again.');
+        setApiError('Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
+        addToast('error', 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
       }
     } finally {
       setSubmitting(false);
@@ -61,7 +61,7 @@ const LoginPage = () => {
     <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-800">Chào mừng trở lại</h2>
-        <p className="text-gray-600 mt-2">Đăng nhập lẹ đi bạn êi!</p>
+        <p className="text-gray-600 mt-2">Đăng nhập ở đây</p>
       </div>
 
       <Formik
@@ -119,7 +119,7 @@ const LoginPage = () => {
             </button>
             
             <div className="text-center mt-6">
-              <span className="block text-gray-600">Chưa có tài khoản ah? Nhấn vào đây nè! </span>
+              <span className="block text-gray-600">Chưa có tài khoản? Hãy nhấn vào đây</span>
               <Link to="/register" className="text-blue-600 hover:text-blue-800 font-medium">
                 Đăng ký ngay
               </Link>

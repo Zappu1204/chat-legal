@@ -46,8 +46,8 @@ const AdminUserDetailsPage = () => {
         const userData = await adminService.getUserDetails(userId);
         setUser(userData);
       } catch (error) {
-        console.error('Error loading user details:', error);
-        setError('Failed to load user details. Please try again.');
+        console.error('Lỗi khi tải thông tin người dùng:', error);
+        setError('Không tải được thông tin người dùng. Vui lòng thử lại.');
       } finally {
         setIsLoading(false);
       }
@@ -67,7 +67,7 @@ const AdminUserDetailsPage = () => {
     try {
       const statusUpdate: UserStatusUpdateRequest = {
         isActive,
-        reason: isActive ? 'Account activated by administrator' : 'Account deactivated by administrator'
+        reason: isActive ? 'Tài khoản được kích hoạt bởi quản trị viên': 'Tài khoản bị hủy kích hoạt bởi quản trị viên'
       };
       
       const response = await adminService.updateUserStatus(userId, statusUpdate);
@@ -77,11 +77,11 @@ const AdminUserDetailsPage = () => {
         // Update local user state
         setUser(prev => prev ? { ...prev, isActive } : null);
       } else {
-        setUpdateError(response.message || 'Failed to update user status');
+        setUpdateError(response.message || 'Không cập nhật được trạng thái người dùng');
       }
     } catch (error) {
-      console.error('Error updating user status:', error);
-      setUpdateError(error instanceof Error ? error.message : 'An error occurred updating user status');
+      console.error('Lỗi khi cập nhật trạng thái người dùng:', error);
+      setUpdateError(error instanceof Error ? error.message : 'Đã xảy ra lỗi khi cập nhật trạng thái người dùng');
     } finally {
       setIsUpdating(false);
       setShowConfirmation(false);
@@ -115,13 +115,13 @@ const AdminUserDetailsPage = () => {
         <div className="flex items-center">
           <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-500 mr-3" />
           <div>
-            <p className="text-red-700 font-medium">Error</p>
-            <p className="text-red-600">{error || 'User not found'}</p>
+            <p className="text-red-700 font-medium">Lỗi</p>
+            <p className="text-red-600">{error || 'Không tìm thấy người dùng'}</p>
             <button 
               onClick={() => navigate('/admin/users')}
               className="mt-2 text-red-600 hover:text-red-800 underline"
             >
-              Return to users list
+              Quay lại danh sách người dùng
             </button>
           </div>
         </div>
@@ -134,9 +134,9 @@ const AdminUserDetailsPage = () => {
       <div className="mb-6 flex items-center">
         <Link to="/admin/users" className="text-blue-600 hover:text-blue-800 flex items-center mr-4">
           <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-          Back to users
+          Quay lại với người dùng
         </Link>
-        <h1 className="text-3xl font-bold text-gray-800 flex-grow">User Details</h1>
+        <h1 className="text-3xl font-bold text-gray-800 flex-grow">Chi tiết người dùng</h1>
       </div>
       
       {/* Status update messages */}
@@ -198,7 +198,7 @@ const AdminUserDetailsPage = () => {
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className="text-lg font-semibold mb-4 border-b pb-2">User Information</h3>
+              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Thông tin người dùng</h3>
               
               <div className="space-y-3">
                 <div className="flex items-start">
@@ -212,7 +212,7 @@ const AdminUserDetailsPage = () => {
                 <div className="flex items-start">
                   <FontAwesomeIcon icon={faPhone} className="text-gray-500 mr-3 mt-1" />
                   <div>
-                    <p className="text-xs text-gray-500">Phone</p>
+                    <p className="text-xs text-gray-500">Điện thoại</p>
                     <p>{user.phoneNumber || 'Not provided'}</p>
                   </div>
                 </div>
@@ -220,7 +220,7 @@ const AdminUserDetailsPage = () => {
                 <div className="flex items-start">
                   <FontAwesomeIcon icon={faCalendar} className="text-gray-500 mr-3 mt-1" />
                   <div>
-                    <p className="text-xs text-gray-500">Registered</p>
+                    <p className="text-xs text-gray-500">Đăng ký</p>
                     <p>{formatDate(user.createdAt)}</p>
                   </div>
                 </div>
@@ -228,7 +228,7 @@ const AdminUserDetailsPage = () => {
                 <div className="flex items-start">
                   <FontAwesomeIcon icon={faCalendar} className="text-gray-500 mr-3 mt-1" />
                   <div>
-                    <p className="text-xs text-gray-500">Last Updated</p>
+                    <p className="text-xs text-gray-500">Cập nhật lần cuối</p>
                     <p>{formatDate(user.updatedAt)}</p>
                   </div>
                 </div>
@@ -236,22 +236,22 @@ const AdminUserDetailsPage = () => {
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Usage Statistics</h3>
+              <h3 className="text-lg font-semibold mb-4 border-b pb-2">Thống kê sử dụng</h3>
               
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Total Chats</span>
+                  <span className="text-gray-600">Tổng số cuộc trò chuyện</span>
                   <span className="font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">{user.chatCount}</span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Total Messages</span>
+                  <span className="text-gray-600">Tổng số tin nhắn</span>
                   <span className="font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">{user.messageCount}</span>
                 </div>
                 
                 {user.lastActivity && (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Last Activity</span>
+                    <span className="text-gray-600">Hoạt động cuối cùng</span>
                     <span className="text-gray-800">{formatDate(user.lastActivity)}</span>
                   </div>
                 )}
@@ -261,7 +261,7 @@ const AdminUserDetailsPage = () => {
           
           {/* User actions */}
           <div className="mt-8 pt-6 border-t">
-            <h3 className="text-lg font-semibold mb-4">Actions</h3>
+            <h3 className="text-lg font-semibold mb-4">Hành động</h3>
             
             <div className="flex flex-wrap gap-3">
               {user.isActive ? (
@@ -271,7 +271,7 @@ const AdminUserDetailsPage = () => {
                   className="flex items-center px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
                 >
                   <FontAwesomeIcon icon={isUpdating ? faSpinner : faUserTimes} className={isUpdating ? 'animate-spin mr-2' : 'mr-2'} />
-                  Deactivate User
+                  Hủy kích hoạt người dùng
                 </button>
               ) : (
                 <button
@@ -280,7 +280,7 @@ const AdminUserDetailsPage = () => {
                   className="flex items-center px-4 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
                 >
                   <FontAwesomeIcon icon={isUpdating ? faSpinner : faUserCheck} className={isUpdating ? 'animate-spin mr-2' : 'mr-2'} />
-                  Activate User
+                  Kích hoạt người dùng
                 </button>
               )}
               
@@ -303,14 +303,14 @@ const AdminUserDetailsPage = () => {
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <h3 className="text-lg font-medium mb-4">{
               pendingAction === 'activate' 
-                ? 'Activate User Account' 
-                : 'Deactivate User Account'
+                ? 'Kích hoạt tài khoản người dùng' 
+                : 'Hủy kích hoạt tài khoản người dùng'
             }</h3>
             
             <p className="text-gray-600 mb-6">
               {pendingAction === 'activate' 
-                ? `Are you sure you want to activate ${user.username}'s account? This will allow them to log in and use the system.`
-                : `Are you sure you want to deactivate ${user.username}'s account? They will no longer be able to log in until the account is reactivated.`
+                ? `Bạn có chắc chắn muốn kích hoạt tài khoản của ${user.username} không? Điều này sẽ cho phép họ đăng nhập và sử dụng hệ thống.`
+                : `Bạn có chắc chắn muốn hủy kích hoạt tài khoản của ${user.username} không? Họ sẽ không thể đăng nhập cho đến khi tài khoản được kích hoạt lại.`
               }
             </p>
             
@@ -319,7 +319,7 @@ const AdminUserDetailsPage = () => {
                 onClick={() => setShowConfirmation(false)}
                 className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                Cancel
+                Hủy
               </button>
               
               <button

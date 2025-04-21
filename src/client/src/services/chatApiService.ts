@@ -11,7 +11,7 @@ const chatApiService = {
   createChat: async (model: string, title?: string, description?: string): Promise<ChatResponse> => {
     const response = await api.post<ChatResponse>('/api/chats', {
       model,
-      title: title ?? 'New Chat',
+      title: title ?? 'Tạo mới hội thoại',
       description
     });
     return response.data;
@@ -45,11 +45,11 @@ const chatApiService = {
    */
   sendMessage: async (chatId: string, content: string): Promise<ChatMessageResponse> => {
     if (!chatId) {
-      throw new Error('Chat ID is required');
+      throw new Error('Mã hội thoại không được để trống');
     }
     
     if (!content) {
-      throw new Error('Message content is required');
+      throw new Error('Nội dung tin nhắn không được để trống');
     }
     
     // Make sure content is a string
@@ -62,8 +62,8 @@ const chatApiService = {
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageContent) ||
       messageContent === chatId
     ) {
-      console.error('[CRITICAL] Attempted to send an ID as message content:', messageContent);
-      throw new Error('Invalid message content that appears to be an ID');
+      console.error('[NGUY HIỂM] Nội dung tin nhắn có vẻ như là một ID:', messageContent);
+      throw new Error('Nội dung tin nhắn không hợp lệ');
     }
     
     console.debug(`Sending message to chat ${chatId}:`, messageContent.substring(0, 50) + (messageContent.length > 50 ? '...' : ''));

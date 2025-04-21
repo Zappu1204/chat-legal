@@ -10,21 +10,21 @@ import { RegisterRequest } from '../../types/auth';
 
 const RegisterSchema = Yup.object().shape({
   username: Yup.string()
-    .required('Username is required')
-    .min(3, 'Username must be at least 3 characters')
-    .max(50, 'Username must be less than 50 characters'),
+    .required('Tên người dùng không được để trống')
+    .min(3, 'Tên người dùng phải có ít nhất 3 ký tự')
+    .max(50, 'Tên người dùng phải ít hơn 50 ký tự'),
   email: Yup.string()
-    .required('Email is required')
-    .email('Invalid email format'),
+    .required('Email không được để trống')
+    .email('Email không hợp lệ'),
   password: Yup.string()
-    .required('Password is required')
-    .min(6, 'Password must be at least 6 characters')
-    .max(100, 'Password must be less than 100 characters'),
+    .required('Mật khẩu không được để trống')
+    .min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
+    .max(100, 'Mật khẩu phải ít hơn 100 ký tự'),
   confirmPassword: Yup.string()
-    .required('Please confirm your password')
-    .oneOf([Yup.ref('password')], 'Passwords must match'),
+    .required('Xác nhận mật khẩu không được để trống')
+    .oneOf([Yup.ref('password')], 'Mật khẩu không khớp'),
   phoneNumber: Yup.string()
-    .matches(/^$|^\+?[0-9]{10,15}$/, 'Phone number is invalid')
+    .matches(/^$|^\+?[0-9]{10,15}$/, 'Số điện thoại không hợp lệ')
 });
 
 const RegisterPage = () => {
@@ -52,14 +52,14 @@ const RegisterPage = () => {
           navigate('/login');
         }, 3000);
       } else {
-        setApiError(response.message ?? 'Registration failed');
+        setApiError(response.message ?? 'Đăng ký thất bại');
       }
     } catch (error) {
       console.error('Registration error:', error);
       if (error instanceof Error) {
-        setApiError(error.message ?? 'Registration failed');
+        setApiError(error.message ?? 'Đăng ký thất bại');
       } else {
-        setApiError('An unexpected error occurred during registration');
+        setApiError('Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.');
       }
     } finally {
       setSubmitting(false);
@@ -89,7 +89,7 @@ const RegisterPage = () => {
     <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-800">Tạo tài khoản mới</h2>
-        <p className="text-gray-600 mt-2">Tham gia cùng chúng tớ nào!</p>
+        <p className="text-gray-600 mt-2">Tham gia cùng chúng tôi</p>
       </div>
 
       <Formik
@@ -116,7 +116,7 @@ const RegisterPage = () => {
 
             {/* Username field */}
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">Tên người dùng</label>
               <div className={`flex items-center border rounded-md px-3 py-2 ${
                 errors.username && touched.username ? 'border-red-500' : 'border-gray-300'
               }`}>
@@ -125,7 +125,7 @@ const RegisterPage = () => {
                   id="username"
                   type="text"
                   name="username"
-                  placeholder="Nhập username của bạn"
+                  placeholder="Nhập tên người dùng của bạn"
                   className="w-full outline-none"
                 />
               </div>

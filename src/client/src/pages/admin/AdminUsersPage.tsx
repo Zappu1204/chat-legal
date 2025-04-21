@@ -129,7 +129,7 @@ const AdminUsersPage = () => {
         setUsers(response.content);
         setTotalPages(response.totalPages);
       } catch (error) {
-        console.error('Error loading users:', error);
+        console.error('Lỗi khi tải người dùng:', error);
       } finally {
         setIsLoading(false);
       }
@@ -164,8 +164,8 @@ const AdminUsersPage = () => {
   return (
     <div className="container mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">User Management</h1>
-        <p className="text-gray-600 mt-1">View, search and manage all users</p>
+        <h1 className="text-3xl font-bold text-gray-800">Quản lý người dùng</h1>
+        <p className="text-gray-600 mt-1">Xem, tìm kiếm và quản lý tất cả người dùng</p>
       </div>
 
       {/* Search and filter section */}
@@ -176,7 +176,7 @@ const AdminUsersPage = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search users by name, email..."
+                placeholder="Tìm kiếm người dùng theo tên, email..."
                 className="w-full pl-10 pr-4 py-2 border rounded-lg"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -244,12 +244,12 @@ const AdminUsersPage = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registered</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chats</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Messages</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người dùng</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đã đăng ký</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trò chuyện</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tin nhắn</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -274,7 +274,7 @@ const AdminUsersPage = () => {
                       </span>
                       {user.lockedUntil && (
                         <div className="text-xs text-orange-600 mt-1">
-                          Locked until: {formatDate(user.lockedUntil)}
+                          Khóa cho đến khi: {formatDate(user.lockedUntil)}
                         </div>
                       )}
                     </td>
@@ -292,7 +292,7 @@ const AdminUsersPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Link to={`/admin/users/${user.id}`} className="text-blue-600 hover:text-blue-900">
-                        View Details
+                        Xem chi tiết
                       </Link>
                     </td>
                   </tr>
@@ -302,7 +302,7 @@ const AdminUsersPage = () => {
             
             {users.length === 0 && !isLoading && (
               <div className="text-center py-8">
-                <p className="text-gray-500">No users found matching your criteria</p>
+                <p className="text-gray-500">Không tìm thấy người dùng nào phù hợp với tiêu chí của bạn</p>
               </div>
             )}
             

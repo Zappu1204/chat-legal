@@ -70,7 +70,7 @@ function getAuthHeader(): string {
     const userData = JSON.parse(userStr);
     return userData?.accessToken ? `Bearer ${userData.accessToken}` : '';
   } catch (error) {
-    console.error('Error parsing user data:', error);
+    console.error('Lỗi khi phân tích cú pháp thông tin người dùng:', error);
     return '';
   }
 }
@@ -265,7 +265,7 @@ function transformToMessageWithThinking(
       thinkingTime: processed.thinkingTime ?? calculateThinkingTime(state)
     };
   } catch (e) {
-    console.error("Error transforming message:", e);
+    console.error("Lỗi khi chuyển đổi tin nhắn:", e, rawData);
     
     // Return a safe fallback
     return {
@@ -333,7 +333,7 @@ function processEventLine(
       onMessage(finalMessage);
     }
   } catch (e) {
-    console.warn("Error parsing SSE message:", e, jsonStr);
+    console.warn("Lỗi khi phân tích cú pháp dòng sự kiện:", e, jsonStr);
     // Continue processing - don't break on parse errors
   }
 }
@@ -358,13 +358,13 @@ function startStreamingRequest(
   })
   .then(async response => {
     if (!response.ok) {
-      throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
+      throw new Error(`Máy chủ phản hồi ${response.status}: ${response.statusText}`);
     }
 
     // Create a reader for the response body stream
     const reader = response.body?.getReader();
     if (!reader) {
-      throw new Error('Response body is undefined');
+      throw new Error('Nội dung phản hồi không hợp lệ');
     }
 
     // Set up a decoder for the chunks
@@ -394,13 +394,13 @@ function startStreamingRequest(
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return;
-      console.error('Stream reading error:', error);
+      console.error('Lỗi khi đọc dòng sự kiện:', error);
       onError(error instanceof Error ? error : new Error(String(error)));
     }
   })
   .catch(error => {
     if (error.name === 'AbortError') return;
-    console.error('Stream request failed:', error);
+    console.error('Lỗi khi bắt đầu yêu cầu:', error);
     onError(error instanceof Error ? error : new Error(String(error)));
   });
 }

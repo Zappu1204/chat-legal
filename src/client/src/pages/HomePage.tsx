@@ -50,13 +50,13 @@ const HomePage = () => {
               {isSaving && (
                 <div className="flex items-center text-sm text-blue-500">
                   <FontAwesomeIcon icon={faCircleNotch} spin className="mr-2" />
-                  <span>Tớ đang lưu nè...</span>
+                  <span>Đang lưu ...</span>
                 </div>
               )}
               {!isSaving && activeChatId && (
                 <div className="flex items-center text-sm text-green-500">
                   <FontAwesomeIcon icon={faSave} className="mr-2" />
-                  <span>Đã lưu xong rồi á!</span>
+                  <span>Đã lưu xong</span>
                 </div>
               )}
             </>
@@ -72,9 +72,9 @@ const HomePage = () => {
           <div className="min-h-full flex flex-col justify-end">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-end h-full text-center p-4">
-                <h2 className="text-2xl font-bold text-gray-700 mb-4">Chào bạn, Tớ là ViVu AI!</h2>
+                <h2 className="text-2xl font-bold text-gray-700 mb-4">Chào bạn, Tớ là PTIT Chatbot! Tớ sẽ giúp bạn các công việc hằng ngày như tra cứu lịch học, lịch thi, và các thông tin về luật Giao thông.</h2>
                 <p className="text-gray-600">
-                  <span className="font-semibold">{user?.username}</span> ngoan xinh yêu ơi! Cứ hành tớ thoải mái nhé?
+                  <span className="font-semibold">{user?.username}</span> hãy sử dụng tớ thoải mái nhé!
                 </p>
                 {!activeChatId && (
                   <p className="text-gray-500 mt-2 text-sm italic">
@@ -108,7 +108,7 @@ const HomePage = () => {
             aria-label="Kéo xuống để xem tin nhắn mới nhé!"
           >
             <FontAwesomeIcon icon={faArrowDown} className="mr-2" />
-            <span>New messages</span>
+            <span>Tin nhắn mới</span>
           </button>
         </div>
       )}
@@ -120,16 +120,16 @@ const HomePage = () => {
             <p className="text-gray-700 font-medium mb-4">Vài loại câu hỏi tớ có thể trả lời:</p>
             <div className="space-x-2 text-gray-600 text-sm flex flex-wrap">
               <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
-                onClick={() => handleSendMessage("Làm thế nào để có người yêu?")}>
-                Làm thế nào để có người yêu?
+                onClick={() => handleSendMessage("Lịch học của tôi ngày hôm nay là gì?")}>0
+                Lịch học của tôi ngày hôm nay là gì?
               </div>
               <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
-                onClick={() => handleSendMessage("Tại sao lập trình viên không thích deadline?")}>
-                Tại sao lập trình viên không thích deadline?
+                onClick={() => handleSendMessage("Lịch thi của tôi kỳ này là gì?")}>
+                Lịch thi của tôi kỳ này là gì?
               </div>
               <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
-                onClick={() => handleSendMessage("Vì sao thứ 2 là ngày buồn nhất trong tuần?")}>
-                Vì sao thứ 2 là ngày buồn nhất trong tuần?
+                onClick={() => handleSendMessage("Người điều khiển xe mô tô hai bánh, xe mô tô ba bánh, xe gắn máy không được thực hiện những hành vi nào?")}>
+                Người điều khiển xe mô tô hai bánh, xe mô tô ba bánh, xe gắn máy không được thực hiện những hành vi nào?
               </div>
             </div>
           </div>
@@ -138,8 +138,8 @@ const HomePage = () => {
           onSubmit={handleSendMessage}
           isDisabled={isTyping || isSaving}
           placeholder={
-            isTyping ? "Chờ tý! tớ đang trả lời mà..." :
-              isSaving ? "Đang lưu..." : "Gõ đê bạn ơi..."
+            isTyping ? "Hãy chờ một lát" :
+              isSaving ? "Đang lưu..." : "Hãy nhập tin nhắn của bạn..."
           }
         />
       </div>
@@ -152,7 +152,7 @@ const HomePage = () => {
             onClick={dismissError}
             className="text-red-500 hover:text-red-700 text-sm"
           >
-            Dismiss
+            Bỏ qua
           </button>
         </div>
       )}

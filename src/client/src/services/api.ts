@@ -46,7 +46,7 @@ api.interceptors.request.use(
           config.headers.Authorization = `Bearer ${userData.accessToken}`;
         }
       } catch (error) {
-        console.error('Error parsing user data:', error);
+        console.error('Lỗi khi phân tích cú pháp user data từ localStorage:', error);
       }
     }
     return config;
@@ -93,12 +93,12 @@ api.interceptors.response.use(
       // Get refresh token from storage
       const userStr = localStorage.getItem('user');
       if (!userStr) {
-        throw new Error('No user data available');
+        throw new Error('Không tìm thấy thông tin người dùng trong');
       }
 
       const userData = JSON.parse(userStr);
       if (!userData.refreshToken) {
-        throw new Error('No refresh token available');
+        throw new Error('Không tìm thấy refresh token');
       }
 
       // Attempt to refresh token
@@ -138,7 +138,7 @@ api.interceptors.response.use(
 // Format API errors consistently
 function formatApiError(error: unknown): ApiError {
   const apiError: ApiError = {
-    message: 'An unknown error occurred',
+    message: 'Lỗi không xác định',
     status: 500
   };
   

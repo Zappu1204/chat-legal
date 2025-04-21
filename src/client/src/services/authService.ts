@@ -73,7 +73,7 @@ const authService = {
       const response = await authAxios.post<JwtResponse>('/api/auth/refresh', request);
       return response.data;
     } catch (error) {
-      console.error('Token refresh failed:', error);
+      console.error('Lỗi khi làm mới token:', error);
       // Let the caller handle the error
       throw error;
     }
@@ -88,7 +88,7 @@ const authService = {
       // Check token expiration with 30 seconds buffer
       return (payload.exp * 1000) < (Date.now() - 30000);
     } catch (e) {
-      console.error('Error parsing token:', e);
+      console.error('Lỗi khi phân tích token', e);
       return true; // If we can't parse the token, assume it's expired
     }
   }

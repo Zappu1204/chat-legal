@@ -50,8 +50,8 @@ const AdminDashboardPage = () => {
   return (
     <div className="container mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-        <p className="text-gray-600 mt-1">System overview and key metrics</p>
+        <h1 className="text-3xl font-bold text-gray-800">Trang quản lý</h1>
+        <p className="text-gray-600 mt-1">Hệ thống quản lý</p>
       </div>
 
       {/* Statistics Cards */}
@@ -61,7 +61,7 @@ const AdminDashboardPage = () => {
             <FontAwesomeIcon icon={faUsers} className="text-blue-500 text-xl" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-800">Total Users</h3>
+            <h3 className="text-lg font-semibold text-gray-800">Tổng số người dùng</h3>
             <p className="text-2xl font-bold text-blue-600">{userCount}</p>
           </div>
         </div>
@@ -71,7 +71,7 @@ const AdminDashboardPage = () => {
             <FontAwesomeIcon icon={faUserCheck} className="text-green-500 text-xl" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-800">Active Users</h3>
+            <h3 className="text-lg font-semibold text-gray-800">Người dùng hoạt động</h3>
             <p className="text-2xl font-bold text-green-600">{activeUserCount}</p>
           </div>
         </div>
@@ -81,7 +81,7 @@ const AdminDashboardPage = () => {
             <FontAwesomeIcon icon={faUserTimes} className="text-red-500 text-xl" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-800">Inactive Users</h3>
+            <h3 className="text-lg font-semibold text-gray-800">Người dùng không hoạt động</h3>
             <p className="text-2xl font-bold text-red-600">{inactiveUserCount}</p>
           </div>
         </div>
@@ -89,28 +89,28 @@ const AdminDashboardPage = () => {
 
       {/* Quick Access Menu */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Điều khiển nhanh</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link to="/admin/users" className="bg-blue-50 hover:bg-blue-100 rounded-lg p-4 flex items-center transition-colors">
             <FontAwesomeIcon icon={faUsers} className="text-blue-500 mr-3" />
-            <span className="font-medium">Manage Users</span>
+            <span className="font-medium">Quản lý người dùng</span>
           </Link>
           
           <Link to="/admin/users?status=active" className="bg-green-50 hover:bg-green-100 rounded-lg p-4 flex items-center transition-colors">
             <FontAwesomeIcon icon={faUserCheck} className="text-green-500 mr-3" />
-            <span className="font-medium">View Active Users</span>
+            <span className="font-medium">Xem người dùng hoạt động</span>
           </Link>
           
           <Link to="/admin/users?status=inactive" className="bg-red-50 hover:bg-red-100 rounded-lg p-4 flex items-center transition-colors">
             <FontAwesomeIcon icon={faUserTimes} className="text-red-500 mr-3" />
-            <span className="font-medium">View Inactive Users</span>
+            <span className="font-medium">Xem người dùng không hoạt động</span>
           </Link>
         </div>
       </div>
 
       {/* Recent Users */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Recently Registered Users</h2>
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Người dùng mới đăng ký gần đâys</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
@@ -148,7 +148,7 @@ const AdminDashboardPage = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <Link to={`/admin/users/${user.id}`} className="text-blue-600 hover:text-blue-900">
-                      View Details
+                    Xem chi tiết
                     </Link>
                   </td>
                 </tr>
@@ -158,13 +158,13 @@ const AdminDashboardPage = () => {
           
           {recentUsers.length === 0 && (
             <div className="py-8 text-center text-gray-500">
-              No users found.
+              Không tìm thấy người dùng nào.
             </div>
           )}
           
           <div className="mt-4 text-center">
             <Link to="/admin/users" className="text-blue-600 hover:text-blue-800 font-medium">
-              View All Users →
+              Xem tất cả người dùng →
             </Link>
           </div>
         </div>
