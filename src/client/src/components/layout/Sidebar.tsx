@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faAngleDoubleLeft, faAngleDoubleRight, faPlus, faSignOut, faUserShield } from '@fortawesome/free-solid-svg-icons';
-import Logo from '../../assets/logo.png';
+import Logo from '../../assets/ptit_logo.png';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -38,7 +38,7 @@ const Sidebar = () => {
     // Additional effect to react to activeChatId changes
     // This ensures the sidebar highlights the correct active chat
     useEffect(() => {
-        if (activeChatId) {
+        if (activeChatId && Array.isArray(chatHistory)) {
             const activeChat = chatHistory.find(chat => chat.id === activeChatId);
             if (!activeChat) {
                 // If the active chat isn't in our history yet, refresh the list
@@ -135,7 +135,7 @@ const Sidebar = () => {
                 <div className={`flex items-center *:hover:cursor-pointer ${isCollapsed ? 'flex-col' : 'justify-between'}`}>
                     <div className="brand flex items-center flex-grow">
                         <img src={Logo} alt='logo' className={isCollapsed ? 'w-14 h-14 p-1' : 'w-12 h-12 ml-3'} />
-                        <span className={isCollapsed ? 'hidden' : 'text-2xl font-bold text-black ml-3'}>ViVu</span>
+                        <span className={isCollapsed ? 'hidden' : 'text-2xl font-bold text-black ml-3'}>PTIT Chat</span>
                     </div>
                     <button
                         type="button"
@@ -153,19 +153,19 @@ const Sidebar = () => {
                     title="Chat mới nè!"
                 >
                     <FontAwesomeIcon icon={faPlus} className={isCollapsed ? 'w-6 h-6' : 'mr-2'} />
-                    <span className={isCollapsed ? 'hidden' : ''}>Chat mới nè</span>
+                    <span className={isCollapsed ? 'hidden' : ''}>Chat mới</span>
                 </button>
             </div>
 
             {/* Chat history list */}
             <div className="flex-grow">
                 <div className={`chat-list overflow-y-auto p-2 ${isCollapsed ? 'hidden' : ''}`}>
-                    <h3 className="text-xs uppercase font-bold text-gray-500 mb-2 px-2">Lịch sử chém gió</h3>
+                    <h3 className="text-xs uppercase font-bold text-gray-500 mb-2 px-2">Lịch sử chat</h3>
                     {isLoadingHistory ? (
                         <div className="flex justify-center items-center p-4">
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-500"></div>
                         </div>
-                    ) : chatHistory.length === 0 ? (
+                    ) : !Array.isArray(chatHistory) || chatHistory.length === 0 ? (
                         <div className="text-center text-gray-500 p-4">
                             <p className="text-sm">Không có cuộc trò chuyện nào</p>
                             <p className="text-xs">Bắt đầu cuộc trò chuyện mới!</p>
@@ -208,7 +208,7 @@ const Sidebar = () => {
                         <Link to='/admin'
                             className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white transition-colors'>
                             <FontAwesomeIcon icon={faUserShield} className="mr-2" />
-                            Admin Panel
+                            Khung quản trị
                         </Link>
                     )}
                     <Link to='/settings'
@@ -218,7 +218,7 @@ const Sidebar = () => {
                     <button type="button" onClick={handleLogout}
                         className='block w-full p-4 border-b border-gray-200 hover:bg-blue-500 hover:text-white hover:rounded-b-md text-left transition-colors'>
                         <FontAwesomeIcon icon={faSignOut} className='mr-3' />
-                        Bye nha!
+                        Hẹn gặp lại!
                     </button>
                 </div>
             </div>

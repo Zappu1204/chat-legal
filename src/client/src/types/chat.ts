@@ -7,6 +7,7 @@ export interface ChatMessage {
   think?: string;
   thinkingStartTime?: number;
   thinkingTime?: number;
+  sources?: Source[]; // Thêm sources cho RAG
 }
 
 export interface ChatSession {
@@ -65,13 +66,14 @@ export interface ChatMessageResponse {
 }
 
 export interface ChatContextType extends ChatState {
-  sendMessage: (content: string) => void;
+  sendMessage: (content: string, model?: string, useRag?: boolean) => void; // Thêm tham số useRag
   clearMessages: () => void;
   dismissError: () => void;
   createNewChat: (createInDatabase?: boolean) => Promise<ChatResponse | null>;
   loadChatHistory: () => Promise<void>;
   selectChat: (chatId: string) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
+  toggleRagMode: () => void; // Thêm hàm chuyển đổi chế độ RAG
 }
 
 export interface ChatState {
@@ -83,4 +85,27 @@ export interface ChatState {
   chatTitle: string;
   chatHistory: ChatResponse[];
   isLoadingHistory: boolean;
+  ragMode: boolean; // Thêm trạng thái RAG
+}
+
+// RAG types
+export interface Source {
+  chapter_title: string;
+  article_title: string;
+  content: string;
+  distance?: number;
+}
+
+export interface RagResponse {
+  answer: string;
+  sources: Source[];
+  query: string;
+  query_time_ms?: number;
+}
+
+export interface RAGBuildIndexResponse {
+  success: boolean;
+  message: string;
+  build_time_ms: number;
+  document_count: number;
 }

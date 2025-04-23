@@ -3,15 +3,17 @@ import { v4 as uuidv4 } from 'uuid';
 import { ChatMessage, ChatResponse, ChatState, OllamaChatRequest } from '../types/chat';
 import chatService from '../services/chatService';
 import chatApiService from '../services/chatApiService';
+import { sendRagQuery } from '../services/ragService';
 
 interface ChatContextType extends ChatState {
-  sendMessage: (content: string, model?: string) => void;
+  sendMessage: (content: string, model?: string, useRag?: boolean) => void;
   clearMessages: () => void;
   dismissError: () => void;
   createNewChat: (createInDatabase?: boolean, model?: string) => Promise<ChatResponse | null>;
   loadChatHistory: () => Promise<void>;
   selectChat: (chatId: string) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
+  toggleRagMode: () => void;
 }
 
 // Create context
@@ -29,7 +31,8 @@ type ChatAction =
   | { type: 'SET_ACTIVE_CHAT'; payload: { id: string | null, title: string } }
   | { type: 'SET_CHAT_HISTORY'; payload: ChatResponse[] }
   | { type: 'SET_LOADING_HISTORY'; payload: boolean }
-  | { type: 'REMOVE_CHAT_FROM_HISTORY'; payload: string };
+  | { type: 'REMOVE_CHAT_FROM_HISTORY'; payload: string }
+  | { type: 'TOGGLE_RAG_MODE' };
 
 // Reducer function
 const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
@@ -68,6 +71,11 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
         ...state, 
         chatHistory: state.chatHistory.filter(chat => chat.id !== action.payload) 
       };
+    case 'TOGGLE_RAG_MODE':
+      return {
+        ...state,
+        ragMode: !state.ragMode
+      };
     default:
       return state;
   }
@@ -86,6 +94,7 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
     chatTitle: 'New Chat',
     chatHistory: [],
     isLoadingHistory: false,
+    ragMode: false, // RAG mode mặc định là tắt
   };
 
   const [state, dispatch] = useReducer(chatReducer, initialState);
@@ -97,6 +106,11 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
         abortControllerRef.current();
       }
     };
+  }, []);
+
+  // Toggle RAG mode
+  const toggleRagMode = useCallback(() => {
+    dispatch({ type: 'TOGGLE_RAG_MODE' });
   }, []);
 
   // Move the loadChatHistory declaration up before it's used
@@ -215,7 +229,11 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
       // Debug log to verify the content being sent
       console.debug('Saving message content:', actualContent);
       
-      const response = await chatApiService.sendMessage(chatId, actualContent);
+      // Xác định role của tin nhắn (user hoặc assistant)
+      const role = isUserMessage ? 'user' : 'assistant';
+      
+      // Sử dụng tham số role khi gọi API
+      const response = await chatApiService.sendMessage(chatId, actualContent, role);
       
       // If this was the first user message, the title might have been updated
       if (isUserMessage && state.messages.filter(m => m.role === 'user').length === 1) {
@@ -258,9 +276,68 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
     }
   }, [state.messages, state.chatTitle]);
 
+  // Hàm xử lý tin nhắn với RAG
+  const handleRagMessage = useCallback(async (
+    content: string,
+    _userMessageId: string,
+    assistantMessageId: string,
+    currentChatId: string | null
+  ) => {
+    try {
+      dispatch({ type: 'SET_TYPING', payload: true });
+
+
+      // Gọi API RAG
+      const ragResponse = await sendRagQuery(content);
+      
+      // Cập nhật tin nhắn trợ lý với nội dung và nguồn dữ liệu
+      updateMessage(assistantMessageId, {
+        content: ragResponse.answer,
+        thinking: false,
+        sources: ragResponse.sources
+      });
+
+      // Lưu trữ tin nhắn vào backend nếu có chatId
+      if (currentChatId) {
+        // Lưu tin nhắn người dùng
+        await saveMessageToBackend(currentChatId, content, true);
+
+        // Format nội dung để lưu trữ cả nguồn tài liệu
+        let assistantContent = ragResponse.answer;
+        
+        // Thêm nguồn tài liệu vào cuối nội dung (tuỳ chọn)
+        if (ragResponse.sources && ragResponse.sources.length > 0) {
+          assistantContent += "\n\n**Nguồn:**\n";
+          ragResponse.sources.forEach((source, index) => {
+            assistantContent += `[${index + 1}] ${source.chapter_title}, ${source.article_title}\n`;
+          });
+        }
+        
+        // Lưu tin nhắn trợ lý
+        await saveMessageToBackend(currentChatId, assistantContent, false);
+        
+        // Cập nhật debug info
+        console.debug(`Truy vấn RAG hoàn tất trong ${ragResponse.query_time_ms?.toFixed(0) || '??'} ms, tìm thấy ${ragResponse.sources?.length || 0} nguồn`);
+      }
+
+    } catch (error) {
+      console.error('Error processing RAG query:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error processing your query with RAG';
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
+      
+      // Update assistant message with error
+      updateMessage(assistantMessageId, {
+        content: 'Xin lỗi, đã xảy ra lỗi khi tìm kiếm thông tin pháp luật giao thông. Vui lòng thử lại sau.',
+        thinking: false
+      });
+    } finally {
+      dispatch({ type: 'SET_TYPING', payload: false });
+    }
+  }, [updateMessage, saveMessageToBackend]);
+
   // Send a message
   const sendMessage = useCallback(
-    async (content: string, model?: string) => {
+    async (content: string, model?: string, useRag?: boolean) => {
       if (!content.trim() || state.isTyping) return;
 
       // Reset state for new message
@@ -308,6 +385,36 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
       // Add the user message to the UI
       dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
 
+      // Xác định xem có sử dụng RAG không (từ tham số hoặc trạng thái)
+      const shouldUseRag = useRag !== undefined ? useRag : state.ragMode;
+
+      // Add placeholder for assistant's response
+      const assistantMessage: ChatMessage = {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        thinking: false,
+        think: ''
+      };
+
+      dispatch({ type: 'ADD_MESSAGE', payload: assistantMessage });
+
+      if (shouldUseRag) {
+        // Sử dụng RAG cho câu trả lời
+        await handleRagMessage(content, userMessageId, assistantMessageId, currentChatId);
+        
+        // If this is the first message of a new chat, refresh the chat list
+        if (isNewChat) {
+          setTimeout(() => {
+            loadChatHistory();
+          }, 500);
+        }
+        
+        return;
+      }
+
+      // Nếu không sử dụng RAG, tiếp tục với luồng xử lý thông thường
       try {
         // Save the user message to the backend
         await saveMessageToBackend(currentChatId, content, true);
@@ -324,18 +431,6 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
         console.error('Error saving user message:', error);
         // Continue with the conversation even if saving fails
       }
-
-      // Add placeholder for assistant's response
-      const assistantMessage: ChatMessage = {
-        id: assistantMessageId,
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-        thinking: false,
-        think: ''
-      };
-
-      dispatch({ type: 'ADD_MESSAGE', payload: assistantMessage });
 
       // Prepare API request with conversation history
       const messagesToSend = [
@@ -441,7 +536,7 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
         });
       }
     },
-    [state.messages, state.isTyping, state.activeChatId, updateMessage, modelId, createNewChat, saveMessageToBackend, loadChatHistory]
+    [state.messages, state.isTyping, state.activeChatId, state.ragMode, updateMessage, modelId, createNewChat, saveMessageToBackend, loadChatHistory, handleRagMessage]
   );
 
   // Clear all messages
@@ -491,13 +586,15 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
     chatTitle: state.chatTitle,
     chatHistory: state.chatHistory,
     isLoadingHistory: state.isLoadingHistory,
+    ragMode: state.ragMode,
     sendMessage,
     clearMessages,
     dismissError,
     createNewChat,
     loadChatHistory,
     selectChat,
-    deleteChat
+    deleteChat,
+    toggleRagMode
   }), [
     state.messages,
     state.isTyping,
@@ -507,13 +604,15 @@ export const ChatProvider = ({ children, modelId = 'gemma3:1b' }: { children: Re
     state.chatTitle,
     state.chatHistory,
     state.isLoadingHistory,
+    state.ragMode,
     sendMessage,
     clearMessages,
     dismissError,
     createNewChat,
     loadChatHistory,
     selectChat,
-    deleteChat
+    deleteChat,
+    toggleRagMode
   ]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

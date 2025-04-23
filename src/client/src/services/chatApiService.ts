@@ -41,9 +41,9 @@ const chatApiService = {
   },
 
   /**
-   * Send a message to a chat
+   * Send a message to a chat with specified role
    */
-  sendMessage: async (chatId: string, content: string): Promise<ChatMessageResponse> => {
+  sendMessage: async (chatId: string, content: string, role: 'user' | 'assistant' = 'user'): Promise<ChatMessageResponse> => {
     if (!chatId) {
       throw new Error('Mã hội thoại không được để trống');
     }
@@ -66,9 +66,9 @@ const chatApiService = {
       throw new Error('Nội dung tin nhắn không hợp lệ');
     }
     
-    console.debug(`Sending message to chat ${chatId}:`, messageContent.substring(0, 50) + (messageContent.length > 50 ? '...' : ''));
+    console.debug(`Sending message to chat ${chatId} with role ${role}:`, messageContent.substring(0, 50) + (messageContent.length > 50 ? '...' : ''));
     
-    const response = await api.post<ChatMessageResponse>(`/api/chats/${chatId}/messages`, {
+    const response = await api.post<ChatMessageResponse>(`/api/chats/${chatId}/messages?role=${role}`, {
       content: messageContent
     });
     return response.data;

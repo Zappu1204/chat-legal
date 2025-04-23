@@ -14,12 +14,26 @@ interface ChatHistoryItemProps {
 const ChatHistoryItem = ({ chat, isActive, onSelect, onDelete }: ChatHistoryItemProps) => {
     const navigate = useNavigate();
     
-    // Format the date to be relative to now
-    const formattedDate = formatDistance(
-        new Date(chat.updatedAt),
-        new Date(),
-        { addSuffix: true }
-    );
+    // Format the date to be relative to now with error handling
+    const getFormattedDate = () => {
+        try {
+            if (!chat.updatedAt) return 'Unknown date';
+            
+            // Parse the date safely with validation
+            const date = new Date(chat.updatedAt);
+            
+            // Validate the date is valid
+            if (isNaN(date.getTime())) {
+                console.warn(`Invalid date format: ${chat.updatedAt}`);
+                return 'Recently';
+            }
+            
+            return formatDistance(date, new Date(), { addSuffix: true });
+        } catch (error) {
+            console.error('Error formatting date:', error);
+            return 'Recently';
+        }
+    };
 
     // Handle click to ensure navigation to home page first, then select chat
     const handleClick = () => {
@@ -43,7 +57,7 @@ const ChatHistoryItem = ({ chat, isActive, onSelect, onDelete }: ChatHistoryItem
                 <FontAwesomeIcon icon={faComment} className="mr-3" />
                 <div className="truncate">
                     <div className="font-medium truncate">{chat.title ?? 'New Chat'}</div>
-                    <div className="text-xs opacity-70 truncate">{formattedDate}</div>
+                    <div className="text-xs opacity-70 truncate">{getFormattedDate()}</div>
                 </div>
             </div>
             <button

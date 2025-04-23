@@ -1,67 +1,113 @@
-import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import React, { useState, FormEvent, ChangeEvent, useRef, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPaperPlane } from '@fortawesome/free-solid-svg-icons';
+import { faPaperPlane, faSpinner, faBookOpen, faRobot } from '@fortawesome/free-solid-svg-icons';
+import { useChat } from '../../contexts/ChatContext';
 
 interface ChatInputProps {
-    onSubmit: (message: string) => void;
-    isDisabled: boolean;
-    placeholder?: string;
+  onSubmit: (message: string) => void;
+  isDisabled?: boolean;
+  placeholder?: string;
 }
 
-const ChatInput = ({ onSubmit, isDisabled, placeholder = 'Gõ đê bạn ơi...' }: ChatInputProps) => {
-    const [message, setMessage] = useState('');
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+const ChatInput: React.FC<ChatInputProps> = ({
+  onSubmit,
+  isDisabled = false,
+  placeholder = 'Nhập tin nhắn của bạn...',
+}) => {
+  const [message, setMessage] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { ragMode, toggleRagMode } = useChat();
 
-    useEffect(() => {
-        if (textareaRef.current) {
-            // Reset height
-            textareaRef.current.style.height = 'auto';
-            // Set new height based on content
-            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
-        }
-    }, [message]);
+  // Resize textarea based on content
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [message]);
 
-    const handleSubmit = () => {
-        if (message.trim() && !isDisabled) {
-            onSubmit(message);
-            setMessage('');
-        }
-    };
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (message.trim() && !isDisabled) {
+      onSubmit(message);
+      setMessage('');
+    }
+  };
 
-    const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSubmit();
-        }
-    };
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Submit on Enter without Shift key
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  };
 
-    return (
-        <div className="border-t border-gray-200 p-4 bg-slate-100 rounded-lg shadow-md">
-            <div>
-                <div className="form-group">
-                    <textarea
-                        ref={textareaRef}
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder={placeholder}
-                        disabled={isDisabled}
-                        rows={1}
-                        className="w-full resize-none rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-transparent disabled:bg-gray-100 disabled:text-gray-500"
-                    />
-                </div>
-                <div className="form-actions flex justify-end items-center gap-2">
-                    <button title='Gửi tin nhắn' type='button'
-                        onClick={handleSubmit}
-                        disabled={isDisabled ?? !message.trim()}
-                        className="bg-blue-500 text-white rounded-full p-2 h-10 w-10 flex items-center justify-center disabled:bg-gray-300"
-                    >
-                        <FontAwesomeIcon icon={faPaperPlane} />
-                    </button>
-                </div>
-            </div>
+  const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+  };
+
+  return (
+    <div className="relative">
+      <form onSubmit={handleSubmit} className="relative">
+        <div className="flex items-center p-2 border border-gray-300 rounded-lg shadow-sm bg-white">
+          {/* RAG Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleRagMode}
+            className={`p-2 rounded-full mr-2 ${
+              ragMode 
+                ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+            title={ragMode ? 'Đang sử dụng chế độ hỏi đáp luật giao thông' : 'Chuyển sang chế độ hỏi đáp luật giao thông'}
+          >
+            <FontAwesomeIcon icon={ragMode ? faBookOpen : faRobot} />
+          </button>
+          
+          <textarea
+            ref={textareaRef}
+            value={message}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            disabled={isDisabled}
+            className="flex-grow px-3 py-2 resize-none outline-none text-gray-700 max-h-32"
+            rows={1}
+          />
+          <button
+            type="submit"
+            disabled={!message.trim() || isDisabled}
+            className={`p-2 rounded-full ${
+              !message.trim() || isDisabled
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+          >
+            {isDisabled ? (
+              <FontAwesomeIcon icon={faSpinner} spin />
+            ) : (
+              <FontAwesomeIcon icon={faPaperPlane} />
+            )}
+          </button>
         </div>
-    );
+      </form>
+      
+      {/* Mode indicator */}
+      <div className="absolute bottom-full left-0 mb-1 text-xs text-gray-500">
+        {ragMode ? (
+          <span className="flex items-center text-indigo-600">
+            <FontAwesomeIcon icon={faBookOpen} className="mr-1" />
+            Chế độ hỏi đáp luật giao thông
+          </span>
+        ) : (
+          <span className="flex items-center">
+            <FontAwesomeIcon icon={faRobot} className="mr-1" />
+            Chế độ chat thông thường
+          </span>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default ChatInput;

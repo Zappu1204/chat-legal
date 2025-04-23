@@ -6,6 +6,7 @@ import ChatInput from '../components/chat/ChatInput';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSave, faCircleNotch, faArrowDown } from '@fortawesome/free-solid-svg-icons';
 import ModelSelector from '../components/chat/ModelSelector';
+import RagManager from '../components/chat/RagManager';
 import { useState, useRef, MouseEvent } from 'react';
 
 const HomePage = () => {
@@ -116,11 +117,11 @@ const HomePage = () => {
       {/* Input area - fixed at bottom */}
       <div className={`max-w-4xl w-full mx-auto sticky bottom-0 bg-white p-4 ${messages.length === 0 ? 'flex-grow' : ''}`}>
         {messages.length === 0 && (
-          <div className="p-6 rounded-lg w-full text-center">
-            <p className="text-gray-700 font-medium mb-4">Vài loại câu hỏi tớ có thể trả lời:</p>
-            <div className="space-x-2 text-gray-600 text-sm flex flex-wrap">
+          <div className="p-6 rounded-lg w-full">
+            <p className="text-gray-700 font-medium mb-4 text-center">Vài loại câu hỏi tớ có thể trả lời:</p>
+            <div className="space-x-2 text-gray-600 text-sm flex flex-wrap justify-center mb-6">
               <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
-                onClick={() => handleSendMessage("Lịch học của tôi ngày hôm nay là gì?")}>0
+                onClick={() => handleSendMessage("Lịch học của tôi ngày hôm nay là gì?")}>
                 Lịch học của tôi ngày hôm nay là gì?
               </div>
               <div aria-hidden className="p-2 bg-slate-100 rounded-full shadow-md hover:bg-slate-200 cursor-pointer"
@@ -132,6 +133,9 @@ const HomePage = () => {
                 Người điều khiển xe mô tô hai bánh, xe mô tô ba bánh, xe gắn máy không được thực hiện những hành vi nào?
               </div>
             </div>
+            
+            {/* RAG Manager - thêm component để quản lý vector database */}
+            <RagManager />
           </div>
         )}
         <ChatInput
