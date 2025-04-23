@@ -1,262 +1,181 @@
-# ViVu Chat - AI Chatbot Application
+# PTIT Chat - Trợ lý Luật Giao thông Đường bộ
 
-ViVu Chat is an AI-powered chatbot application that allows users to have interactive conversations with various large language models through the Ollama API. The application provides a user-friendly interface with features like chat history, thinking indicators, and model selection.
+PTIT Chat là một ứng dụng chatbot AI sử dụng công nghệ RAG (Retrieval-Augmented Generation) để tra cứu và cung cấp thông tin về Luật Giao thông Đường bộ Việt Nam. Ứng dụng kết hợp sức mạnh của mô hình ngôn ngữ lớn với cơ sở dữ liệu pháp luật có cấu trúc để cung cấp câu trả lời chính xác, đáng tin cậy và có trích dẫn nguồn.
 
-## Features
+## Tính năng
 
-- 🤖 Integration with multiple AI models via Ollama
-- 💬 Chat interface with real-time message streaming
-- 🧠 "Thinking" indicators showing the AI's reasoning process
-- 📚 Chat history management
-- 👥 User authentication and account management
-- 🔄 Model switching during conversations
-- 📱 Responsive design for desktop and mobile
+- 🔍 Tìm kiếm và trả lời thông tin về luật giao thông với RAG
+- 🤖 Tích hợp với mô hình ngôn ngữ lớn thông qua Ollama
+- 💬 Giao diện chat với hiển thị tin nhắn theo thời gian thực
+- 📚 Quản lý lịch sử trò chuyện và tài khoản người dùng
+- 🔄 Khả năng chuyển đổi giữa chế độ chat thông thường và chế độ RAG
+- 📱 Thiết kế responsive cho máy tính và thiết bị di động
+- 📊 Quản lý và hiển thị nguồn tài liệu pháp luật
 
-## Tech Stack
+## Công nghệ sử dụng
 
 ### Frontend
 
-- ReactJS with TypeScript
-- TailwindCSS for styling
-- React Router for navigation
-- FontAwesome for icons
+- React 19 với TypeScript
+- TailwindCSS cho styling
+- React Router cho điều hướng
+- Vite cho build tool
+- Axios cho gọi API
 
 ### Backend
 
-- Spring Boot 3
-- Spring Security with JWT
-- Spring Data JPA
-- PostgreSQL for data storage
-- WebFlux for reactive APIs
+- FastAPI (Python) cho RESTful API
+- SQLAlchemy cho ORM và tương tác cơ sở dữ liệu
+- LangChain để xử lý RAG
+- FAISS cho vector database
+- HuggingFace Embeddings để vector hóa văn bản
+- JWT cho xác thực người dùng
 
-### Infrastructure
+### Cơ sở hạ tầng
 
 - Docker & Docker Compose
-- Ollama for running local AI models
-- NGINX for frontend hosting
+- Ollama để chạy mô hình ngôn ngữ lớn
+- NGINX làm reverse proxy
 
-## Prerequisites
+## Yêu cầu
 
 - Docker & Docker Compose
 - Git
-- NVIDIA GPU with CUDA support (recommended but not required)
+- NVIDIA GPU với hỗ trợ CUDA (khuyến nghị nhưng không bắt buộc)
 
-## Quick Start with Docker
+## Khởi động nhanh với Docker
 
-The fastest way to get started is using Docker Compose:
+Cách nhanh nhất để khởi động là sử dụng Docker Compose:
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/vivu-chat.git
-cd vivu-chat
+# Clone repository
+git clone https://github.com/yourusername/chat-legal.git
+cd chat-legal
 
-# Start all services
+# Khởi động các dịch vụ
 cd src
 docker-compose up -d
 
-# Pull an AI model (after services are running)
-docker exec -it vivuchat-ollama ollama pull gemma:2b
+# Tải một mô hình AI (sau khi các dịch vụ đã chạy)
+docker exec -it chatbot-ollama ollama pull llama3.1:8b
 ```
 
-After the services are running, access:
+Sau khi các dịch vụ đang chạy, truy cập:
 - Web App: http://localhost
-- API: http://localhost:8080
+- API: http://localhost:8000
 - Ollama: http://localhost:11434
 
-## Running on Apple Silicon (M1/M2)
+## Chạy trên Apple Silicon (M1/M2)
 
-For Mac users with Apple Silicon (M1/M2) processors, our Docker configuration supports ARM64 architecture:
+Đối với người dùng Mac có chip Apple Silicon (M1/M2), cấu hình Docker của chúng tôi hỗ trợ kiến trúc ARM64:
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/vivu-chat.git
-cd vivu-chat
+# Clone repository
+git clone https://github.com/yourusername/chat-legal.git
+cd chat-legal
 
-# Edit docker-compose.yml to use ARM64 architecture
-# Change BUILDPLATFORM values from linux/amd64 to linux/arm64
+# Chỉnh sửa docker-compose.yml để sử dụng kiến trúc ARM64
+# Thay đổi giá trị BUILDPLATFORM từ linux/amd64 thành linux/arm64
 
-# Start all services
+# Khởi động các dịch vụ
 cd src
 docker-compose up -d
 
-# Pull an AI model optimized for ARM
-docker exec -it vivuchat-ollama ollama pull gemma:2b
+# Tải mô hình AI được tối ưu hóa cho ARM
+docker exec -it chatbot-ollama ollama pull llama3.1:8b
 ```
 
-### Specifying Platform in Docker Compose
+## Kiến trúc RAG
 
-There are multiple ways to specify the platform when running Docker Compose:
+Dự án sử dụng kiến trúc RAG (Retrieval-Augmented Generation) để tăng độ chính xác của câu trả lời về luật giao thông:
 
-1. **Using environment variables** (recommended):
-```bash
-# For ARM64 (Apple M1/M2)
-DOCKER_DEFAULT_PLATFORM=linux/arm64 docker-compose up -d
+1. **Thu thập dữ liệu**: Luật Giao thông Đường bộ được cấu trúc thành JSON
+2. **Xử lý dữ liệu**: Tài liệu được chia thành đoạn nhỏ và chuyển đổi thành vector embedding
+3. **Vector database**: FAISS lưu trữ và đánh chỉ mục các vector embedding
+4. **Retrieval**: Khi có câu hỏi, hệ thống tìm kiếm các đoạn văn bản liên quan nhất
+5. **Generation**: LLM tạo câu trả lời dựa trên ngữ cảnh tìm được
+6. **Trích dẫn**: Câu trả lời được trả về kèm theo nguồn tài liệu pháp lý
 
-# For AMD64 (Intel/AMD processors)
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker-compose up -d
-```
+## Cài đặt môi trường phát triển
 
-2. **Using Docker Compose build arguments** (already configured):
-```bash
-# Edit the BUILDPLATFORM args in docker-compose.yml before running
-docker-compose up --build
-```
-
-3. **Using Docker BuildKit**:
-```bash
-# Enable BuildKit
-export DOCKER_BUILDKIT=1
-
-# Set the platform
-export BUILDPLATFORM=linux/arm64
-
-# Run Docker Compose
-docker-compose up --build
-```
-
-If you experience any architecture-related issues:
-
-- Make sure Docker Desktop is updated to the latest version
-- Verify that the BUILDPLATFORM is set to `linux/arm64` in the docker-compose.yml file
-- Check that both Dockerfiles properly use the platform variable with `--platform=${BUILDPLATFORM}`
-
-## Detailed Docker Setup
-
-### Environment Configuration
-
-The Docker setup uses environment variables to configure the services. The key variables are already set in the `docker-compose.yml` file, but you can customize them:
-
-```yaml
-# PostgreSQL settings
-POSTGRES_DB: vivuchat
-POSTGRES_USER: postgres
-POSTGRES_PASSWORD: postgres
-
-# Backend settings
-SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/vivuchat
-OLLAMA_API_BASE_URL: http://ollama:11434
-APP_OLLAMA_APIURL: http://ollama:11434/api
-
-# Frontend settings 
-VITE_API_BASE_URL: /api
-```
-
-### Running Different AI Models
-
-Ollama supports various AI models. To use a different model:
-
-```bash
-# List available models
-docker exec -it vivuchat-ollama ollama list
-
-# Pull a new model
-docker exec -it vivuchat-ollama ollama pull llama3:8b
-docker exec -it vivuchat-ollama ollama pull gemma:7b
-
-# For larger models (if you have enough GPU RAM)
-docker exec -it vivuchat-ollama ollama pull mixtral:8x7b
-```
-
-Once you've pulled models, you can select them in the ViVu Chat UI's model selector.
-
-### Enabling GPU Support
-
-For better performance, enable GPU support by modifying the `docker-compose.yml`:
-
-```yaml
-ollama:
-  # ...existing settings...
-  deploy:
-    resources:
-      reservations:
-        devices:
-          - driver: nvidia
-            count: 1
-            capabilities: [gpu]
-```
-
-### Docker Volume Management
-
-Docker volumes store persistent data:
-
-```bash
-# List volumes
-docker volume ls | grep vivuchat
-
-# Backup PostgreSQL data
-docker exec -it vivuchat-postgres pg_dump -U postgres vivuchat > backup.sql
-
-# Clean up (WARNING: Removes all data)
-docker-compose down -v
-```
-
-## Troubleshooting Docker Setup
-
-### Connection Issues
-
-If the frontend can't connect to the backend:
-- Ensure the `VITE_API_BASE_URL` is set correctly in Dockerfile.client
-- Check NGINX configuration in `deployment/nginx/default.conf`
-- Verify network connectivity: `docker network inspect vivuchat-network`
-
-### Ollama Model Problems
-
-If models aren't loading:
-- Check Ollama logs: `docker logs vivuchat-ollama`
-- Ensure Ollama has enough resources
-- Verify the API URL: `http://ollama:11434`
-
-### Database Connection Issues
-
-If PostgreSQL connection fails:
-- Ensure the database is running: `docker ps | grep postgres`
-- Check connection settings in `application-docker.properties`
-- Verify database initialization: `docker exec -it vivuchat-postgres psql -U postgres -c '\l'`
-
-### Architecture-specific Issues
-
-If encountering "exec format error" messages:
-- Verify your architecture: `uname -m`
-- Set the platform explicitly: `DOCKER_DEFAULT_PLATFORM=linux/arm64 docker-compose up -d`
-- Update BUILDPLATFORM in docker-compose.yml accordingly
-- Ensure base images support your architecture
-- Try using multiarch images like `--platform=linux/arm64` for Apple Silicon
-
-## Development Setup
-
-### Frontend Development (Local)
+### Frontend (Local)
 
 ```bash
 cd src/client
 
-# Install dependencies
+# Cài đặt dependencies
 npm install
 
-# Start development server
+# Khởi động server phát triển
 npm run dev
 
-# Build for production
+# Build cho production
 npm run build
 ```
 
-### Backend Development (Local)
+### Backend Python (Local)
 
 ```bash
-cd src/server
+cd src/server_py
 
-# Run using Maven
-./mvnw spring-boot:run
+# Tạo và kích hoạt môi trường ảo
+python -m venv venv
+source venv/bin/activate  # Trên Windows: venv\Scripts\activate
 
-# Package as JAR
-./mvnw package
+# Cài đặt dependencies
+pip install -r requirements.txt
 
-# Run with specific profile
-java -jar target/*.jar --spring.profiles.active=dev
+# Khởi động ứng dụng
+python server.py
 ```
 
-## Environment Variables
+## Quản lý mô hình Ollama
 
-### Frontend Environment
+Ollama hỗ trợ nhiều mô hình AI khác nhau. Để sử dụng một mô hình khác:
 
-Frontend environment variables are set during build:
+```bash
+# Liệt kê các mô hình có sẵn
+docker exec -it chatbot-ollama ollama list
+
+# Tải mô hình mới
+docker exec -it chatbot-ollama ollama pull llama3.1:8b
+docker exec -it chatbot-ollama ollama pull gemma:7b
+
+# Đối với mô hình lớn hơn (nếu bạn có đủ RAM GPU)
+docker exec -it chatbot-ollama ollama pull mixtral:8x7b
+```
+
+Sau khi đã tải mô hình, bạn có thể chọn chúng trong giao diện của PTIT Chat.
+
+## Xây dựng cơ sở dữ liệu RAG
+
+Để tạo mới hoặc cập nhật vector database từ dữ liệu nguồn:
+
+1. Đảm bảo dữ liệu nguồn (luật giao thông) được định dạng đúng trong `app/data/luat_giao_thong_struct.json`
+2. Truy cập giao diện quản lý RAG trong ứng dụng
+3. Nhấp vào nút "Xây dựng Vector DB" để tạo chỉ mục mới
+4. Kiểm tra trạng thái để xác nhận việc xây dựng đã hoàn tất
+
+Hoặc thực hiện thông qua API:
+
+```bash
+# Xây dựng vector database qua API
+curl -X POST http://localhost:8000/api/rag/build-index \
+  -H "Authorization: Bearer your_access_token" \
+  -H "Content-Type: application/json"
+```
+
+## Đóng góp
+
+Mọi đóng góp đều được hoan nghênh! Vui lòng làm theo các bước sau:
+
+1. Fork repository
+2. Tạo nhánh tính năng (`git checkout -b feature/amazing-feature`)
+3. Commit thay đổi của bạn (`git commit -m 'Add some amazing feature'`)
+4. Push lên nhánh (`git push origin feature/amazing-feature`)
+5. Mở Pull Request
+
+## Giấy phép
+
+Dự án này được cấp phép theo [Giấy phép MIT](LICENSE).
 
