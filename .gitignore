@@ -1,1 +1,27 @@
 .vscode/*
+*/node_modules
+**/__pycache__/
+*.pyc
+
+.venv/
+venv/
+env/
+
+# Ignore build artifacts
+**/dist/
+**/build/
+*.egg-info/
+
+# Ignore editor/IDE files (examples)
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Ignore coverage reports
+.coverage
+htmlcov/
+
+# Ignore pip install log
+pip-log.txt
+pip-selfcheck.json
