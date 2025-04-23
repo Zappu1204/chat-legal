@@ -1,0 +1,51 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Cài đặt các gói phụ thuộc
+COPY server_py/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Cài đặt các thư viện bổ sung cho RAG và API cơ bản
+RUN pip install --no-cache-dir \
+    faiss-cpu \
+    sentence-transformers \
+    numpy \
+    fastapi \
+    uvicorn \
+    sqlalchemy \
+    psycopg2-binary \
+    python-jose \
+    passlib \
+    python-multipart \
+    aiofiles \
+    httpx
+
+# Sao chép mã nguồn vào container
+COPY server_py/ .
+
+# Tạo thư mục dữ liệu
+RUN mkdir -p app/data
+
+# Thiết lập môi trường
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV PORT=8080
+
+# Biến môi trường PostgreSQL
+ENV POSTGRES_SERVER=postgres
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_PASSWORD=postgres
+ENV POSTGRES_DB=chat
+ENV POSTGRES_PORT=5432
+
+# Biến môi trường Ollama
+ENV OLLAMA_API_URL=http://ollama:11434/api/generate
+ENV OLLAMA_API_BASE=http://ollama:11434
+ENV OLLAMA_API_TIMEOUT=60
+
+EXPOSE 8080
+
+# Khởi động ứng dụng
+# CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["python", "server.py"]
