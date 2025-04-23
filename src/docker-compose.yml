@@ -2,9 +2,9 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:latest
-    container_name: vivuchat-postgres
+    container_name: chat-postgres
     environment:
-      POSTGRES_DB: vivuchat
+      POSTGRES_DB: chat
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
@@ -17,36 +17,44 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - vivuchat-network
+      - chat-network
 
   # Ollama
   ollama:
     image: ollama/ollama:latest
-    container_name: vivuchat-ollama
+    container_name: chat-ollama
     volumes:
       - ollama_data:/root/.ollama
     ports:
       - "11434:11434"
     networks:
-      - vivuchat-network
+      - chat-network
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
 
-  # Spring Boot Backend
-  server:
+  # Python FastAPI Backend (RAG Service)
+  server-py:
     build:
       context: .
-      dockerfile: deployment/Dockerfile.server
-      args:
-        - BUILDPLATFORM=linux/amd64
-    container_name: vivuchat-server
-    image: congdinh2012/vivuchat-server
+      dockerfile: deployment/Dockerfile.server_py
+    container_name: chat-server-py
+    image: giapcn/chat-server-py:1.0.0
+    volumes:
+      - ./server_py:/app
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/vivuchat
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - OLLAMA_API_BASE_URL=http://ollama:11434
-      - APP_OLLAMA_APIURL=http://ollama:11434/api
-      - SPRING_PROFILES_ACTIVE=docker
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=chat
+      - POSTGRES_PORT=5432
+      - OLLAMA_API_URL=http://ollama:11434/api
+      - OLLAMA_API_BASE=http://ollama:11434
+      - OLLAMA_API_TIMEOUT=60
     ports:
       - "8080:8080"
     depends_on:
@@ -55,7 +63,7 @@ services:
       ollama:
         condition: service_started
     networks:
-      - vivuchat-network
+      - chat-network
 
   # ReactJS Frontend
   client:
@@ -64,18 +72,19 @@ services:
       dockerfile: deployment/Dockerfile.client
       args:
         - VITE_API_BASE_URL=/api
+        - VITE_RAG_API_URL=/api
         - BUILDPLATFORM=linux/amd64
-    container_name: vivuchat-client
-    image: congdinh2012/vivuchat-client
+    container_name: chat-client
+    image: giapcn/chat-client:1.0.0
     ports:
       - "80:80"
     depends_on:
-      - server
+      - server-py
     networks:
-      - vivuchat-network
+      - chat-network
 
 networks:
-  vivuchat-network:
+  chat-network:
     driver: bridge
 
 volumes:
