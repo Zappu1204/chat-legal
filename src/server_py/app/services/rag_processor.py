@@ -13,7 +13,9 @@ from typing import List, Dict, Tuple, Any, Optional
 # Thêm các thư viện LangChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_core.embeddings.embeddings import Embeddings
 from langchain_community.vectorstores import FAISS as LangchainFAISS
+
 from langchain.docstore.document import Document
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
@@ -27,11 +29,15 @@ logger = logging.getLogger(__name__)
 LAW_DATA_PATH = os.getenv("LAW_DATA_PATH", "app/data/luat_giao_thong_struct.json")
 FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", "app/data/faiss_index.pkl")
 METADATA_PATH = os.getenv("METADATA_PATH", "app/data/metadata.pkl")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "legalvn/paraphrase-multilingual-MiniLM-L12-v2-168000")
+# Update embedding model to use E5-Mistral-7B-Instruct
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "intfloat/e5-mistral-7b-instruct")
 OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://ollama:11434/api/generate")
 OLLAMA_API_BASE = os.getenv("OLLAMA_API_BASE", "http://ollama:11434")
 LLM_MODEL = os.getenv("LLM_MODEL", "llama3.1:8b")
 TOP_K = int(os.getenv("TOP_K", "5"))
+
+# Define the task description for search instruction
+SEARCH_INSTRUCTION = "Tìm kiếm các thông tin pháp luật về giao thông đường bộ"
 
 # Định nghĩa template cho prompt
 PROMPT_TEMPLATE = """
@@ -48,13 +54,67 @@ Câu hỏi: {question}
 Trả lời:
 """
 
+# Define a separate embedding class for E5-Mistral
+class E5MistralEmbeddings(Embeddings):
+    """Custom embedding class for E5-Mistral model"""
+    
+    def __init__(self):
+        """Initialize the embedding model"""
+        self.model_name = EMBEDDING_MODEL
+        self.sentence_transformer = SentenceTransformer(EMBEDDING_MODEL)
+        self.sentence_transformer.max_seq_length = 512
+        logger.info(f"Initialized E5MistralEmbeddings with model: {self.model_name}")
+    
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """Embed a list of documents"""
+        try:
+            embeddings = []
+            batch_size = 8  # Small batch size to manage memory
+            
+            # Process in batches
+            for i in range(0, len(texts), batch_size):
+                batch = texts[i:i+batch_size]
+                batch_embeddings = self.sentence_transformer.encode(
+                    batch, 
+                    normalize_embeddings=True,
+                    show_progress_bar=False
+                )
+                # Convert numpy arrays to lists
+                if isinstance(batch_embeddings, np.ndarray):
+                    batch_embeddings = batch_embeddings.tolist()
+                embeddings.extend(batch_embeddings)
+            
+            return embeddings
+        except Exception as e:
+            logger.error(f"Error in embed_documents: {str(e)}")
+            raise
+    
+    def embed_query(self, text: str) -> List[float]:
+        """Embed a query with proper instruction format"""
+        try:
+            # Format the query with instruction as required by the model
+            instructed_query = f"Instruct: {SEARCH_INSTRUCTION}\nQuery: {text}"
+            embedding = self.sentence_transformer.encode(
+                instructed_query, 
+                normalize_embeddings=True,
+                show_progress_bar=False
+            )
+            # Convert to list if it's a numpy array
+            if isinstance(embedding, np.ndarray):
+                embedding = embedding.tolist()
+            return embedding
+        except Exception as e:
+            logger.error(f"Error in embed_query: {str(e)}")
+            raise
+
 class RAGProcessor:
     def __init__(self, data_path: str = LAW_DATA_PATH):
-        """Initialize the RAG processor with the path to the law data"""
+        """Initialize the RAG processor with the base path for finding law data"""
         self.data_path = data_path
         self.embeddings = None
         self.vectorstore = None
         self.documents = []
+        self.sentence_transformer_model = None
 
     def clean_text(self, text: str) -> str:
         """Clean text by removing unnecessary whitespace and special characters"""
@@ -66,39 +126,91 @@ class RAGProcessor:
 
     def load_and_chunk_data(self) -> List[Document]:
         """
-        Load the law data from JSON and chunk it into Langchain Documents
+        Load the law data from all JSON files in the data/json directory and chunk it into Langchain Documents
         Returns:
             List of Document objects with content and metadata
         """
         try:
-            with open(self.data_path, 'r', encoding='utf-8') as f:
-                law_data = json.load(f)
-
             documents = []
-
-            for chapter in law_data.get("chapters", []):
-                chapter_title = chapter.get("chapter_title", "")
-                
-                for article in chapter.get("articles", []):
-                    article_title = article.get("article_title", "")
+            data_dir = os.path.join(os.path.dirname(self.data_path), "json")
+            
+            # Get all JSON files in the data/json directory
+            json_files = [f for f in os.listdir(data_dir) if f.endswith('.json')]
+            logger.info(f"Found {len(json_files)} JSON files in {data_dir}")
+            
+            # Define text splitter for chunking long texts
+            # Smaller chunk size to ensure it fits within the model's max_seq_length
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=400,  # Smaller chunks to ensure they fit within the 512 token limit
+                chunk_overlap=50,
+                length_function=len,
+            )
+            
+            for json_file in json_files:
+                file_path = os.path.join(data_dir, json_file)
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        law_data = json.load(f)
                     
-                    # Treat each content item as a separate chunk
-                    for content_item in article.get("content", []):
-                        # Clean the content text
-                        clean_content = self.clean_text(content_item)
+                    # Extract file name without extension as source identifier
+                    source_name = os.path.splitext(json_file)[0]
+                    
+                    file_documents = []
+                    
+                    for chapter in law_data.get("chapters", []):
+                        chapter_title = chapter.get("chapter_title", "")
                         
-                        # Create Langchain Document with metadata
-                        doc = Document(
-                            page_content=clean_content,
-                            metadata={
+                        for article in chapter.get("articles", []):
+                            article_title = article.get("article_title", "")
+                            
+                            # Combine all content items into a single text
+                            content = ""
+                            for content_item in article.get("content", []):
+                                clean_content = self.clean_text(content_item)
+                                content += clean_content + " "
+                            
+                            # Skip empty content
+                            if not content.strip():
+                                continue
+                                
+                            # Create metadata
+                            metadata = {
+                                "source_file": source_name,
                                 "chapter_title": chapter_title,
                                 "article_title": article_title,
-                                "source": f"{chapter_title}, {article_title}"
+                                "source": f"{source_name}: {chapter_title}, {article_title}"
                             }
-                        )
-                        documents.append(doc)
+                            
+                            # Create a document
+                            doc = Document(page_content=content.strip(), metadata=metadata)
+                            file_documents.append(doc)
+                    
+                    # Split documents into chunks if they're too long
+                    chunked_documents = []
+                    for doc in file_documents:
+                        if len(doc.page_content) > 400:  # Only split if longer than our chunk size
+                            chunks = text_splitter.split_text(doc.page_content)
+                            for i, chunk in enumerate(chunks):
+                                # Create a new document for each chunk with the same metadata
+                                chunked_doc = Document(
+                                    page_content=chunk,
+                                    metadata={
+                                        **doc.metadata,
+                                        "chunk": i+1,
+                                        "total_chunks": len(chunks)
+                                    }
+                                )
+                                chunked_documents.append(chunked_doc)
+                        else:
+                            chunked_documents.append(doc)
+                    
+                    documents.extend(chunked_documents)
+                    logger.info(f"Processed {json_file}: added {len(chunked_documents)} documents")
+                except Exception as e:
+                    logger.error(f"Error processing file {json_file}: {str(e)}")
+                    continue
             
-            logger.info(f"Loaded and chunked data: {len(documents)} documents created")
+            logger.info(f"Total loaded and chunked data: {len(documents)} documents created from {len(json_files)} files")
             return documents
         
         except Exception as e:
@@ -106,16 +218,23 @@ class RAGProcessor:
             raise
 
     def initialize_embeddings(self):
-        """Initialize HuggingFace embeddings for Langchain"""
+        """Initialize embeddings for Langchain"""
         try:
             logger.info(f"Loading embedding model: {EMBEDDING_MODEL}")
-            model_kwargs = {'device': 'cpu'}
-            encode_kwargs = {'normalize_embeddings': True}
-            self.embeddings = HuggingFaceEmbeddings(
-                model_name=EMBEDDING_MODEL,
-                model_kwargs=model_kwargs,
-                encode_kwargs=encode_kwargs
-            )
+            
+            # For E5-Mistral-7B model, use our dedicated class
+            if "e5-mistral" in EMBEDDING_MODEL.lower():
+                self.embeddings = E5MistralEmbeddings()
+            else:
+                # Fallback to regular HuggingFaceEmbeddings for other models
+                model_kwargs = {'device': 'cpu'}
+                encode_kwargs = {'normalize_embeddings': True}
+                self.embeddings = HuggingFaceEmbeddings(
+                    model_name=EMBEDDING_MODEL,
+                    model_kwargs=model_kwargs,
+                    encode_kwargs=encode_kwargs
+                )
+                
             logger.info("Embedding model loaded successfully")
         except Exception as e:
             logger.error(f"Error loading embedding model: {str(e)}")
@@ -131,12 +250,37 @@ class RAGProcessor:
             if self.embeddings is None:
                 self.initialize_embeddings()
                 
-            # Create vectorstore
-            self.vectorstore = LangchainFAISS.from_documents(
-                documents=documents,
-                embedding=self.embeddings
-            )
+            # Check if there are documents to process
+            if not documents:
+                logger.warning("No documents to build vectorstore")
+                return
+                
+            logger.info(f"Building vectorstore with {len(documents)} documents")
             
+            # Process in batches to prevent memory issues with large document sets
+            batch_size = 50  # Adjust based on memory constraints
+            all_batches = []
+            
+            for i in range(0, len(documents), batch_size):
+                end_idx = min(i + batch_size, len(documents))
+                batch = documents[i:end_idx]
+                logger.info(f"Processing batch {i//batch_size + 1}/{(len(documents)-1)//batch_size + 1} ({len(batch)} documents)")
+                
+                # Create a small vectorstore for this batch
+                batch_vectorstore = LangchainFAISS.from_documents(
+                    documents=batch,
+                    embedding=self.embeddings
+                )
+                all_batches.append(batch_vectorstore)
+            
+            # Merge all batch vectorstores if there are multiple batches
+            if len(all_batches) > 1:
+                self.vectorstore = all_batches[0]
+                for batch_vs in all_batches[1:]:
+                    self.vectorstore.merge_from(batch_vs)
+            else:
+                self.vectorstore = all_batches[0]
+                
             logger.info(f"Built FAISS vectorstore with {len(documents)} documents")
         except Exception as e:
             logger.error(f"Error building vectorstore: {str(e)}")
@@ -204,6 +348,33 @@ class RAGProcessor:
         
         # Save vectorstore
         self.save_vectorstore()
+
+    def force_rebuild_vectorstore(self):
+        """Force a rebuild of the vectorstore from source data without attempting to load existing data"""
+        try:
+            logger.info("Forcing rebuild of vectorstore...")
+            
+            # Initialize embeddings if not already done
+            if self.embeddings is None:
+                self.initialize_embeddings()
+            
+            # Load and chunk data
+            self.documents = self.load_and_chunk_data()
+            
+            if not self.documents or len(self.documents) == 0:
+                logger.warning("No documents were loaded to build the vectorstore")
+                return False
+            
+            # Build vectorstore
+            self.build_vectorstore(self.documents)
+            
+            # Save vectorstore
+            self.save_vectorstore()
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error forcing rebuild of vectorstore: {str(e)}")
+            raise
 
     def search(self, query: str, top_k: int = TOP_K) -> List[Dict[str, Any]]:
         """

@@ -96,18 +96,30 @@ async def build_vectorstore_index(
         # Đo thời gian xử lý
         start_time = time.time()
         
-        # Xây dựng vectorstore mới
-        processor.build_or_load_vectorstore()
+        # Force a rebuild of the vectorstore
+        success = processor.force_rebuild_vectorstore()
         
         # Tính thời gian xử lý
         build_time_ms = (time.time() - start_time) * 1000
+        
+        # Get document count
+        document_count = len(processor.documents) if hasattr(processor, 'documents') and processor.documents else 0
+        
+        # Check if the rebuild was successful
+        if not success:
+            return RAGBuildIndexResponse(
+                success=False,
+                message="No documents were found to build the vectorstore",
+                build_time_ms=build_time_ms,
+                document_count=document_count
+            )
         
         # Trả về thông tin về việc xây dựng index
         return RAGBuildIndexResponse(
             success=True,
             message="Vectorstore built successfully",
             build_time_ms=build_time_ms,
-            document_count=len(processor.documents) if hasattr(processor, 'documents') and processor.documents else 0
+            document_count=document_count
         )
     except Exception as e:
         raise HTTPException(
